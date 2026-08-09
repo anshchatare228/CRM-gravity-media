@@ -44,37 +44,16 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
   return (
     // added "relative" — the mobile button below is `absolute`, and without a positioned
     // ancestor it was escaping this header entirely instead of anchoring inside it
-    <div className="relative mt-16 md:mt-0 mb-5 px-5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 pb-6 border-b-2 border-slate-400 md:w-full md:pl-6 md:pr-6 bg-black/10 shadow-md">
+    <div className="relative mt-16 md:mt-0 mb-5 px-5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 pb-6 border-b-2 border-slate-400 md:w-full md:pl-6 md:pr-6  shadow-md">
       <div className="mt-3">
         <h1 className="text-3xl mt-3 md:mt-4 md:text-3xl font-extrabold tracking-tight text-slate-900 font-['rajdhani'] uppercase">
           {TabName}
         </h1>
-        <div className="flex items-center gap-2 text-md font-semibold tracking-[3px] text-rose-500 font-['rajdhani'] uppercase md:mb-1">
-          <TrendingUp size={14} /> {SpaceName} Space
+        <div className="flex items-center gap-2 text-md font-semibold tracking-[3px] text-black/60 font-['rajdhani'] uppercase md:mb-1">
+           an overview in the company
         </div>
       </div>
 
-      {/* referral code - desktop view.
-          was: h-[4rem] fixed height (too tight for py-5 + content, risked clipping) -> min-h
-          was: justify-end / sm:justify-start (dead code, this block is hidden below md so those never applied)
-          was: md:mt-[0 rem] (invalid arbitrary value — space inside brackets breaks Tailwind's parser) */}
-      <div className="hidden md:flex items-center gap-2 rounded-2xl bg-white px-5 py-5 border border-slate-200/80 shadow-sm max-w-md sm:w-auto md:justify-between md:mt-5 min-h-[4rem] md:w-[32rem]">
-        <div>
-          <p className="text-[0.75rem] font-bold tracking-wider text-slate-400 uppercase">Referral Identifier</p>
-          {/* was: text-xs "over" — typo'd/invalid class, replaced with truncate so long links don't overflow */}
-          <h2 className="text-xs truncate font-bold font-mono tracking-wide text-slate-900 mt-0.5">
-            {displayLink}
-          </h2>
-        </div>
-        <div className="h-8 w-px bg-slate-100" />
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm shadow-slate-950/10 cursor-pointer shrink-0 ml-[-25px] md:ml-0"
-        >
-          {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-          <span>{copied ? "Copied!" : "Copy"}</span>
-        </button>
-      </div>
 
       {/* mobile view - was: absolute right-[1rem] mt-[1rem] with no positioned parent (see fix above),
           now anchored with top-4 right-4 against the relative container */}

@@ -1,11 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
-import StatCard from "../components/StatCard";
 import UpperNav from "../components/UpperNav";
-import LowerPhoneNav from "../components/LowerPhoneNav";
-
-import { Loader2, ArrowRight, TrendingUp, Award } from "lucide-react";
-
+import StatCard from "../components/StatCard"
+import { Loader2, Users, IndianRupee, Split, TrendingUp } from "lucide-react";
 import {
     LineChart,
     Line,
@@ -18,54 +15,76 @@ import {
 
 // ------------------------------------------------------------------
 // MOCK DATA — replace this whole block with your real API call later.
-// e.g. const data = await DashboardAPI();
-// Just make sure whatever you fetch matches this same shape.
+// e.g. const data = await CRMDashboardAPI();
+// Keep whatever you fetch in this same shape and everything below
+// just works. Two spots are marked CLIENT-TYPE FILTER below in case
+// your backend already splits continuous vs contract server-side.
 // ------------------------------------------------------------------
-const   buildMockDashboard = () => {
+const FIRST_NAMES = ["Aarav", "Priya", "Rohan", "Sneha", "Kabir", "Isha", "Dev", "Meera", "Arjun", "Tara", "Vikram", "Neha"];
+const BRANDS = ["Studio", "Media", "Creations", "Films", "Digital", "Works", "Collective", "Labs"];
+
+const randomClientName = () =>
+    `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${BRANDS[Math.floor(Math.random() * BRANDS.length)]}`;
+
+const buildMockDashboard = () => {
     const today = new Date();
-    const conversion_graph = Array.from({ length: 30 }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(today.getDate() - (29 - i));
-        const orders = Math.floor(Math.random() * 6);
-        const commission = orders * (150 + Math.floor(Math.random() * 100));
+
+    // --- Clients, split by type ---
+    const makeClientBucket = (activeCount, inactiveCount) => ({
+        total: activeCount + inactiveCount,
+        active: activeCount,
+        inactive: inactiveCount,
+    });
+
+    const clients = {
+        continuous: makeClientBucket(14, 3),
+        contract: makeClientBucket(9, 5),
+    };
+
+    // --- Payments, split by type ---
+    const makePaymentBucket = (generated, collected) => ({
+        generated,
+        collected,
+        pending: Math.max(0, generated - collected),
+    });
+
+    const payments = {
+        continuous: makePaymentBucket(482000, 401500),
+        contract: makePaymentBucket(263000, 190000),
+    };
+
+    // --- Combined revenue, used for founder split ---
+    const combinedCollected = payments.continuous.collected + payments.contract.collected;
+    const combinedPending = payments.continuous.pending + payments.contract.pending;
+
+    const founders = [
+        { name: "Founder A", commission: 10 },
+        { name: "Founder B", commission: 90 },
+    ].map((f) => ({
+        ...f,
+        paid: Math.round((combinedCollected * f.commission) / 100),
+        pending: Math.round((combinedPending * f.commission) / 100),
+    }));
+
+    // --- Clients added per month, last 12 months, with names for the tooltip ---
+    const monthlyClients = Array.from({ length: 12 }, (_, i) => {
+        const d = new Date(today.getFullYear(), today.getMonth() - (11 - i), 1);
+        const count = Math.floor(Math.random() * 4) + 1;
+        const names = Array.from({ length: count }, randomClientName);
         return {
-            date: d.toISOString().slice(0, 10),
-            orders,
-            commission,
+            month: d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" }),
+            count,
+            clients: names,
         };
     });
 
-    return {
-        affiliate: {
-            name: "Demo Affiliate",
-            ref_code: "DEMO123",
-            referral_link: "https://example.com/?ref=DEMO123",
-        },
-        tier: {
-            label: "Silver",
-            commission_rate: 10,
-        },
-        next_tier: {
-            label: "Gold",
-            commission_rate: 15,
-            orders_needed: 50,
-            progress: 62,
-        },
-        stats: {
-            clicks: 1840,
-            orders: 31,
-            conversion_rate: 1.7,
-            available_balance: 4250.5,
-            pending_earnings: 1120,
-            paid_earnings: 18650,
-        },
-        conversion_graph,
-    };
+    return { clients, payments, founders, monthlyClients };
 };
 
 export default function Dashboard() {
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [clientType, setClientType] = useState("continuous"); // "continuous" | "contract"
 
     useEffect(() => {
         // Simulated fetch — swap this out for a real API call when the backend is ready
@@ -73,14 +92,13 @@ export default function Dashboard() {
             setDashboard(buildMockDashboard());
             setLoading(false);
         }, 500);
-
         return () => clearTimeout(timer);
     }, []);
 
     const currency = (n) =>
         `₹${Number(n).toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         })}`;
 
     if (loading || !dashboard) {
@@ -97,197 +115,174 @@ export default function Dashboard() {
         );
     }
 
-    const { affiliate, tier, next_tier, stats, conversion_graph } = dashboard;
-
-    const ordersToGo = Math.max(0, next_tier.orders_needed - stats.orders);
-    const tierPct = next_tier.progress;
-
-    // --- Weekly earnings: Sunday to Sunday ---
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-
-    const weeklyEarnings = (conversion_graph || []).reduce((sum, entry) => {
-        const entryDate = new Date(entry.date);
-        if (entryDate >= startOfWeek && entryDate < endOfWeek) {
-            return sum + Number(entry.commission || 0);
-        }
-        return sum;
-    }, 0);
+    // CLIENT-TYPE FILTER: sections 1 & 2 reflect whichever type is toggled
+    const clientStats = dashboard.clients[clientType];
+    const paymentStats = dashboard.payments[clientType];
 
     return (
         <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
             <Navbar />
-
-            <div className="flex-1 min-w-0 flex flex-col pb-24">
-                <UpperNav
-                    Name={affiliate.name}
-                    RefCode={affiliate.ref_code}
+            <div className="flex-1 min-w-0 w-full">
+                {/* <UpperNav
+                    Name={"Ansh"}
+                    RefCode={"123"}
                     TabName={"overview"}
-                    RefLink={affiliate.referral_link}
+                    RefLink={"123"}
                     SpaceName={"Performance"}
-                />
-
-                <div className="px-5 md:px-6 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
-                    {/* Circular tier progress card */}
-                    <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 flex flex-col items-center justify-center text-center hover:border-red-400 duration-400">
-                        <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-amber-500 font-['rajdhani'] uppercase mb-4">
-                            <Award size={14} /> Tier Progress
-                        </div>
-
-                        <div className="relative flex items-center justify-center">
-                            <CircularProgress progress={tierPct} total={100} size={150} stroke={12} />
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-3xl font-extrabold text-slate-900">{tierPct}%</span>
-                                <span className="text-[0.65rem] font-semibold text-gray-400 uppercase tracking-wide">
-                                    {stats.orders} orders
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="mt-5 flex items-center gap-2 text-sm text-slate-600">
-                            <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
-                                {tier.label}
-                            </span>
-                            <ArrowRight size={16} className="text-black" />
-                            <span className="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-600">
-                                {next_tier.label}
-                            </span>
-                        </div>
-
-                        <p className="mt-3 text-xs text-gray-400">
-                            {ordersToGo > 0
-                                ? `${ordersToGo} more order${ordersToGo === 1 ? "" : "s"} to unlock ${next_tier.commission_rate}% commission`
-                                : "You've unlocked the next tier!"}
-                        </p>
-                    </div>
-
-                    {/* Stat cards: 2 columns x 3 rows */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                        <StatCard label="Clicks" value={stats.clicks} valueClass="text-sky-600" sub="Total link clicks" />
-                        <StatCard label="Orders" value={stats.orders} valueClass="text-slate-900" sub="Total converted orders" />
-                        <StatCard
-                            label="Conversion Rate"
-                            value={`${stats.conversion_rate}%`}
-                            valueClass="text-slate-900"
-                            sub="Clicks to orders"
-                        />
-                        <StatCard
-                            label="Available Balance"
-                            value={currency(stats.available_balance)}
-                            valueClass="text-emerald-600"
-                            sub="Ready to withdraw"
-                        />
-                        <StatCard
-                            label="Pending Earnings"
-                            value={currency(stats.pending_earnings)}
-                            valueClass="text-amber-500"
-                            sub="Awaiting approval"
-                        />
-                        <StatCard
-                            label="Total Earnings This Week"
-                            value={currency(weeklyEarnings)}
-                            valueClass="text-slate-900"
-                            sub={"Sunday to Sunday"}
-                        />
-                    </div>
-                </div>
-
-                <div className="mt-5 px-5 md:px-6 grid grid-cols-1 lg:grid-cols-[minmax(0,45rem)_1fr] xl:grid-cols-[minmax(0,17.5rem)_1fr] gap-5">
-                    <div className="grid w-full gap-5">
-                        <StatCard
-                            label="Current Commission"
-                            value={`${tier.commission_rate}%`}
-                            valueClass="text-amber-500"
-                            sub="Current commission rate"
-                        />
-                        <StatCard
-                            label="Total Payout"
-                            value={currency(stats.paid_earnings)}
-                            valueClass="text-slate-900"
-                            sub={"Lifetime payout"}
-                        />
-                    </div>
-
-                    <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 outline-none">
+                /> */}
+                <div className="flex-1 min-w-0 px-5 md:px-6 pt-24 md:pt-6 pb-12 flex flex-col gap-8">
+                    {/* ---------------- Section 1: Clients ---------------- */}
+                    <section>
                         <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-[#e63000] font-['rajdhani'] uppercase">
-                                <TrendingUp size={14} /> Conversions (Last 30 Days)
+                            <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase">
+                                <Users size={14} /> Clients
+                            </div>
+                            <ClientTypeSwitch value={clientType} onChange={setClientType} />
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                            <StatCard
+                                label="Total Clients"
+                                value={clientStats.total}
+                                valueClass="text-slate-900"
+                                sub={clientType === "continuous" ? "Continuous clients" : "Contract clients"}
+                            />
+                            <StatCard label="Active Clients" value={clientStats.active} valueClass="text-emerald-600" sub="Currently active" />
+                            <StatCard label="Inactive Clients" value={clientStats.inactive} valueClass="text-red-600" sub="Not currently active" />
+                        </div>
+                    </section>
+
+                    {/* ---------------- Section 2: Payments ---------------- */}
+                    <section>
+                        <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
+                            <IndianRupee size={14} /> Payments
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                            <StatCard label="Total Revenue Generated" value={currency(paymentStats.generated)} valueClass="text-slate-900" sub="Billed to clients" />
+                            <StatCard label="Revenue Collected" value={currency(paymentStats.collected)} valueClass="text-emerald-600" sub="Received so far" />
+                            <StatCard label="Pending Revenue" value={currency(paymentStats.pending)} valueClass="text-amber-500" sub="Yet to be collected" />
+                        </div>
+                    </section>
+
+                    {/* ---------------- Section 3: Founder Split + Monthly chart ---------------- */}
+                    <section>
+                        <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
+                            <Split size={14} /> Founder Split
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_1fr] gap-5">
+                            <div className="grid gap-5">
+                                {dashboard.founders.map((f) => (
+                                    <FounderCard key={f.name} founder={f} currency={currency} />
+                                ))}
+                            </div>
+
+                            <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+                                <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
+                                    <TrendingUp size={14} /> Clients Added by Month
+                                </div>
+                                <div className="w-full h-64 ml-[-1.5rem]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={dashboard.monthlyClients} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                                            <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} allowDecimals={false} />
+                                            <Tooltip content={<MonthTooltip />} />
+                                            <Line type="monotone" dataKey="count" stroke="#e63000" strokeWidth={2} dot={{ r: 3, fill: "#e63000" }} activeDot={{ r: 5 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-2">Hover a point to see which clients joined that month.</p>
                             </div>
                         </div>
-
-                        <div className="w-full h-64 ml-[-1.5rem] outline-none [&_svg]:outline-none">
-                            <ResponsiveContainer width="100%" height="100%" stroke="none">
-                                <LineChart data={conversion_graph} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                        tickFormatter={(d) =>
-                                            new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
-                                        }
-                                        interval={4}
-                                    />
-                                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} allowDecimals={false} />
-                                    <Tooltip
-                                        labelFormatter={(d) =>
-                                            new Date(d).toLocaleDateString("en-IN", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                            })
-                                        }
-                                        formatter={(value, name) =>
-                                            name === "commission" ? [currency(value), "Commission"] : [value, "Orders"]
-                                        }
-                                    />
-                                    <Line type="monotone" dataKey="orders" stroke="#0ea5e9" strokeWidth={2} dot={false} activeDot={{ r: 0, fill: "none", stroke: "none" }} />
-                                    <Line type="monotone" dataKey="commission" stroke="#f59e0b" strokeWidth={2} dot={false} activeDot={{ r: 0, fill: "none", stroke: "none" }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-
-                        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                                <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Orders
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#e63000] inline-block" /> Commission
-                            </span>
-                        </div>
-                    </div>
+                    </section>
                 </div>
             </div>
-            <LowerPhoneNav />
+
         </div>
     );
 }
 
-// Simple circular progress ring used by the Tier Progress card
-function CircularProgress({ progress, total, size, stroke }) {
-    const radius = (size - stroke) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const pct = Math.min(100, Math.max(0, (progress / total) * 100));
-    const offset = circumference - (pct / 100) * circumference;
+// ---------------- Reusable pieces ----------------
+
+function ClientTypeSwitch({ value, onChange }) {
+    return (
+        <div className="relative inline-flex bg-black rounded-full p-1 text-xs font-semibold">
+            <button
+                onClick={() => onChange("continuous")}
+                className={`px-4 py-2 rounded-full transition-all duration-300 ${value === "continuous" ? "bg-white text-black shadow" : "text-white"
+                    }`}
+            >
+                Continuous
+            </button>
+            <button
+                onClick={() => onChange("contract")}
+                className={`px-4 py-2 rounded-full transition-all duration-300 ${value === "contract" ? "bg-white text-black shadow" : "text-white"
+                    }`}
+            >
+                Contract
+            </button>
+        </div>
+    );
+}
+
+// function StatCard({ label, value, valueClass = "text-slate-900", sub }) {
+//     return (
+//         <div className="rounded-3xl bg-white p-5 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 hover:border-lime-700/70 duration-300">
+//             <p className="text-[0.65rem] font-semibold tracking-[2px] text-black/80 uppercase mb-2">{label}</p>
+//             <p className={`text-2xl font-extrabold ${valueClass}`}>{value}</p>
+//             {sub && <p className="text-xs text-gray-700 mt-1">{sub}</p>}
+//         </div>
+//     );
+// }
+
+function FounderCard({ founder, currency }) {
+    const totalOwed = founder.paid + founder.pending;
+    const pct = totalOwed ? Math.round((founder.paid / totalOwed) * 100) : 0;
 
     return (
-        <svg width={size} height={size} className="-rotate-90">
-            <circle cx={size / 2} cy={size / 2} r={radius} stroke="#e2e8f0" strokeWidth={stroke} fill="none" />
-            <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke="#e63000"
-                strokeWidth={stroke}
-                fill="none"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
-                strokeLinecap="round"
-            />
-        </svg>
+        <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <p className="font-bold text-slate-900">{founder.name}</p>
+                    <p className="text-xs text-gray-400">Commission share</p>
+                </div>
+                <span className="rounded-full bg-amber-50 text-amber-600 text-xs font-semibold px-3 py-1">{founder.commission}%</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Paid</p>
+                    <p className="text-lg font-bold text-emerald-600">{currency(founder.paid)}</p>
+                </div>
+                <div>
+                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Pending</p>
+                    <p className="text-lg font-bold text-amber-500">{currency(founder.pending)}</p>
+                </div>
+            </div>
+            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-black transition-all duration-500" style={{ width: `${pct}%` }} />
+            </div>
+            <p className="text-[0.65rem] text-gray-400 mt-1">{pct}% of their share paid out</p>
+        </div>
+    );
+}
+
+function MonthTooltip({ active, payload, label }) {
+    if (!active || !payload || !payload.length) return null;
+    const data = payload[0].payload;
+    return (
+        <div className="rounded-xl bg-white border border-gray-200 shadow-lg px-4 py-3 text-xs max-w-[220px]">
+            <p className="font-semibold text-slate-800 mb-1">{label}</p>
+            <p className="text-slate-500 mb-2">
+                {data.count} client{data.count === 1 ? "" : "s"} added
+            </p>
+            {data.clients.length > 0 && (
+                <ul className="space-y-0.5">
+                    {data.clients.map((c) => (
+                        <li key={c} className="text-slate-600">
+                            • {c}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     );
 }

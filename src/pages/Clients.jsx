@@ -120,15 +120,15 @@ export default function Clients() {
             <Navbar />
 
             <div className="flex-1 min-w-0 flex flex-col pb-24">
-                <UpperNav
+                {/* <UpperNav
                     Name={"Ansh"}
                     RefCode={"123"}
                     TabName={"overview"}
                     RefLink={"123"}
                     SpaceName={"Performance"}
-                />
+                /> */}
 
-                <div className="px-5 md:px-6">
+                <div className="px-5 md:px-5 pt-5">
                     <div className="max-w-6xl mx-auto">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                             <div>

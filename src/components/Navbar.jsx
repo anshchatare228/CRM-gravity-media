@@ -25,13 +25,13 @@ export default function Navbar() {
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { label: "Clients", path: "/clients", icon: FileText },
-    { label: "Internals", path: "/internals", icon: BoxIcon},
+    { label: "Internals", path: "/internals", icon: BoxIcon },
     // { label: "Payouts", path: "/payouts", icon: Wallet },
     // { label: "Profile", path: "/profile", icon: User },
     // { label: "KrazyStore Site", path: "https://krazystore.in", icon: Link2Icon },
   ];
 
-  const handleLogout = () => {  
+  const handleLogout = () => {
     localStorage.removeItem("affiliate_token");
     localStorage.removeItem("affiliate_user");
     navigate("/login", { replace: true });
@@ -68,7 +68,7 @@ export default function Navbar() {
         `}>
         {/* was h-18 (not in default Tailwind scale, so it silently did nothing) */}
         <div className="hidden md:flex flex-col items-center mb-8 px-2">
-          <img src={brandLogo} alt="Krazystore" className="h-16 mt-[-0.5rem] w-auto object-contain mb-2" />
+          <img src={brandLogo} alt="Krazystore" className="h-20 mt-[-0.5rem] w-auto object-contain mb-2" />
         </div>
 
         {/* flex-1 so the nav list takes remaining space and Logout can be pinned with mt-auto below,
@@ -94,21 +94,19 @@ export default function Navbar() {
                   }
                   setIsOpen(false);
                 }}
-                className={`
-                  w-full group relative flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-left text-[0.95rem] font-medium tracking-wide
-                  transition-all duration-300 ease-out cursor-pointer
-                  ${isActive
-                    ? "bg-black text-white shadow-md shadow-slate-900/10"
-                    : "text-gray-700 hover:text-black hover:scale-105 duration-300"}
+                className={`w-full group relative flex items-center gap-3.5 rounded-sm px-4 py-3.5 text-left text-[0.95rem] font-medium tracking-wide transition-all duration-300 ease-out cursor-pointer overflow-hidden z-10 ${isActive
+                    ? "bg-black text-white shadow-lg shadow-slate-900/10"
+                    : "text-gray-700 hover:text-black before:absolute before:inset-0 before:bg-black/30 before:-translate-x-full hover:before:translate-x-0 before:transition-transform before:duration-600 before:ease-out before:-z-10"
+                  }
                 `}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-[#e63000] rounded-r-md" />
+                  <span className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-black rounded-r-md" />
                 )}
 
                 <Icon
                   size={19}
-                  className={`transition-transform duration-200 group-hover:scale-110 ${isActive ? "text-[#e63000]" : "text-gray-400 group-hover:text-slate-900"}`}
+                  className={`transition-transform duration-200 ${isActive ? "text-white" : "text-gray-400 group-hover:text-slate-900"}`}
                 />
                 <span>{item.label}</span>
               </button>
