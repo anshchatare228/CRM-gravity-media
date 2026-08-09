@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-    // import { registerAffiliate } from "../api/auth.api";
-    // import brandLogo from "../assets/krazystore-logo.png"
+import brandLogo from "../assets/logo.png";
 
 const STEPS = [
     {
@@ -21,17 +20,31 @@ const STEPS = [
     },
 ];
 
+// ------------------------------------------------------------------
+// MOCK REGISTER — replace this function with your real API call later.
+// e.g. const data = await registerAffiliate(payload);
+// ------------------------------------------------------------------
+const mockRegisterAffiliate = async (payload) => {
+    await new Promise((res) => setTimeout(res, 700)); // fake network delay
+
+    return {
+        success: true,
+        token: "demo-token-123",
+        affiliate: {
+            name: payload.name,
+            email: payload.email,
+            ref_code: "DEMO123",
+        },
+    };
+};
+
 function Register({ onAuthSuccess }) {
     const navigate = useNavigate();
 
     const [currentStep, setCurrentStep] = useState(0);
-
     const [showPassword, setShowPassword] = useState(false);
-
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
     const [loading, setLoading] = useState(false);
-
     const [error, setError] = useState("");
 
     const [formData, setFormData] = useState({
@@ -43,7 +56,6 @@ function Register({ onAuthSuccess }) {
         payment_method: "UPI",
         payment_value: "",
 
-        // Bank-specific fields
         bank_account_name: "",
         bank_account_number: "",
         bank_ifsc: "",
@@ -56,67 +68,35 @@ function Register({ onAuthSuccess }) {
         const { name, value } = e.target;
 
         if (name === "name" || name === "bank_account_name") {
-            const alphabetOnly = value.replace(
-                /[^a-zA-Z\s]/g,
-                ""
-            );
-
-            setFormData((prev) => ({
-                ...prev,
-                [name]: alphabetOnly,
-            }));
-
+            setFormData((prev) => ({ ...prev, [name]: value.replace(/[^a-zA-Z\s]/g, "") }));
             return;
         }
 
         if (name === "phone" || name === "bank_account_number") {
-            const numberOnly = value.replace(/[^0-9]/g, "");
-
-            setFormData((prev) => ({
-                ...prev,
-                [name]: numberOnly,
-            }));
-
+            setFormData((prev) => ({ ...prev, [name]: value.replace(/[^0-9]/g, "") }));
             return;
         }
 
         if (name === "bank_ifsc") {
-            setFormData((prev) => ({
-                ...prev,
-                [name]: value.toUpperCase(),
-            }));
-
+            setFormData((prev) => ({ ...prev, [name]: value.toUpperCase() }));
             return;
         }
 
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const validateStep = () => {
         if (currentStep === 0) {
-            if (
-                !formData.name ||
-                !formData.email ||
-                !formData.phone ||
-                !formData.instagram_handle
-            ) {
+            if (!formData.name || !formData.email || !formData.phone || !formData.instagram_handle) {
                 return "Please fill all required fields";
             }
         }
 
         if (currentStep === 1) {
             if (formData.payment_method === "BANK") {
-                if (
-                    !formData.bank_account_name ||
-                    !formData.bank_account_number ||
-                    !formData.bank_ifsc
-                ) {
+                if (!formData.bank_account_name || !formData.bank_account_number || !formData.bank_ifsc) {
                     return "Please fill all bank details";
                 }
-
                 if (formData.bank_ifsc.length !== 11) {
                     return "Please enter a valid IFSC code";
                 }
@@ -126,15 +106,13 @@ function Register({ onAuthSuccess }) {
         }
 
         if (currentStep === 2) {
-            if ( !formData.password || !formData.confirmPassword) {
+            if (!formData.password || !formData.confirmPassword) {
                 return "Please fill all required fields";
             }
-
             if (formData.password.length < 8) {
                 return "Password must be at least 8 characters";
             }
-
-            if ( formData.password.trim() !== formData.confirmPassword.trim()) {
+            if (formData.password.trim() !== formData.confirmPassword.trim()) {
                 return "Passwords do not match";
             }
         }
@@ -144,7 +122,6 @@ function Register({ onAuthSuccess }) {
 
     const goNext = () => {
         const validationError = validateStep();
-
         if (validationError) {
             setError(validationError);
             return;
@@ -159,10 +136,8 @@ function Register({ onAuthSuccess }) {
     };
 
     const handleSubmit = async () => {
-                    
         try {
             const validationError = validateStep();
-
             if (validationError) {
                 setError(validationError);
                 return;
@@ -175,24 +150,21 @@ function Register({ onAuthSuccess }) {
                 email: formData.email,
                 phone: formData.phone,
                 instagram_handle: formData.instagram_handle,
-
                 password: formData.password,
                 confirm_password: formData.confirmPassword,
-
                 payout_method: formData.payment_method.toLowerCase(),
-
                 ...(formData.payment_method === "BANK"
-                ? {
-                bank_account_number: formData.bank_account_number,
-                bank_ifsc: formData.bank_ifsc,
-                bank_holder_name: formData.bank_account_name,
-          }
-        : {
-              upi_id: formData.payment_value,
-          }),
-};
+                    ? {
+                          bank_account_number: formData.bank_account_number,
+                          bank_ifsc: formData.bank_ifsc,
+                          bank_holder_name: formData.bank_account_name,
+                      }
+                    : {
+                          upi_id: formData.payment_value,
+                      }),
+            };
 
-            const data = await registerAffiliate(payload);
+            const data = await mockRegisterAffiliate(payload);
 
             if (!data.success) {
                 setError(data.message);
@@ -202,42 +174,30 @@ function Register({ onAuthSuccess }) {
             if (onAuthSuccess) {
                 onAuthSuccess(data.token, data.affiliate);
             } else {
-                localStorage.setItem(
-                    "affiliate_token",
-                    data.token
-                );
-
-                localStorage.setItem(
-                    "affiliate_user",
-                    JSON.stringify(data.affiliate)
-                );
+                localStorage.setItem("affiliate_token", data.token);
+                localStorage.setItem("affiliate_user", JSON.stringify(data.affiliate));
             }
 
             navigate("/dashboard");
         } catch (err) {
             console.log(err);
-
-            setError(
-                err.response?.data?.message ||
-                "Something went wrong"
-            );
+            setError("Something went wrong");
         } finally {
             setLoading(false);
         }
     };
-    
 
     return (
         <div className="min-h-screen bg-gray-100 pb-12">
             {/* NAVBAR */}
             <div className="flex items-center justify-between bg-white px-6 py-4 shadow-md sticky top-0 z-50">
                 <div className="flex items-center gap-3 ml-[-13px] md:ml-0">
-                    <img src={brandLogo} alt="Krazystore" className="h-13 w-auto object-contain" />
+                    <img src={brandLogo} alt="Brand" className="h-13 w-auto object-contain" />
                 </div>
 
                 <button
                     onClick={() => navigate("/login")}
-                    className="text-[1.1rem] md:text-[1.3rem]text-shadow-black transition md:hover:text-white cursor-pointer duration-300 px-4 py-2 md:bg-black border md:hover:bg-red-600 rounded-xl bg-black text-white md:text-white"
+                    className="text-[1.1rem] md:text-[1.3rem] text-shadow-black transition md:hover:text-white cursor-pointer duration-300 px-4 py-2 md:bg-black border md:hover:bg-red-600 rounded-xl bg-black text-white md:text-white"
                 >
                     Log In
                 </button>
@@ -246,33 +206,23 @@ function Register({ onAuthSuccess }) {
             {/* STEPS */}
             <div className="mt-10 flex items-center justify-center gap-3">
                 {STEPS.map((step, index) => (
-                    <div
-                        key={index}
-                        className="flex items-center gap-3"
-                    >
-                        <div
-                            className="flex cursor-pointer flex-col items-center"
-                        >
+                    <div key={index} className="flex items-center gap-3">
+                        <div className="flex cursor-pointer flex-col items-center">
                             <div
-                                className={`flex h-10 w-10 items-center justify-center rounded-full font-bold transition ${currentStep >= index
-                                        ? "bg-black text-white"
-                                        : "bg-gray-200 text-black"
-                                    }`}
+                                className={`flex h-10 w-10 items-center justify-center rounded-full font-bold transition ${
+                                    currentStep >= index ? "bg-black text-white" : "bg-gray-200 text-black"
+                                }`}
                             >
                                 {index + 1}
                             </div>
-
-                            <p className="mt-2 text-xs font-medium text-gray-500">
-                                {step.label}
-                            </p>
+                            <p className="mt-2 text-xs font-medium text-gray-500">{step.label}</p>
                         </div>
 
                         {index < STEPS.length - 1 && (
                             <div
-                                className={`mb-5 h-[2px] w-16 ${currentStep > index
-                                        ? "bg-red-400"
-                                        : "bg-gray-300"
-                                    }`}
+                                className={`mb-5 h-[2px] w-16 ${
+                                    currentStep > index ? "bg-red-400" : "bg-gray-300"
+                                }`}
                             />
                         )}
                     </div>
@@ -285,22 +235,14 @@ function Register({ onAuthSuccess }) {
                     STEP {currentStep + 1} OF 3
                 </span>
 
-                <h1 className="mt-3 text-3xl font-bold">
-                    {STEPS[currentStep].title}
-                </h1>
-
-                <p className="mt-2 text-sm text-gray-500">
-                    {STEPS[currentStep].subtitle}
-                </p>
+                <h1 className="mt-3 text-3xl font-bold">{STEPS[currentStep].title}</h1>
+                <p className="mt-2 text-sm text-gray-500">{STEPS[currentStep].subtitle}</p>
 
                 {/* STEP 1 */}
                 {currentStep === 0 && (
                     <div className="mt-8 space-y-5">
                         <div>
-                            <label className="mb-0 block text-sm font-medium">
-                                Full Name
-                            </label>
-
+                            <label className="mb-0 block text-sm font-medium">Full Name</label>
                             <input
                                 type="text"
                                 name="name"
@@ -312,10 +254,7 @@ function Register({ onAuthSuccess }) {
                         </div>
 
                         <div>
-                            <label className="mb-0 block text-sm font-medium">
-                                Email Address
-                            </label>
-
+                            <label className="mb-0 block text-sm font-medium">Email Address</label>
                             <input
                                 type="email"
                                 name="email"
@@ -327,10 +266,7 @@ function Register({ onAuthSuccess }) {
                         </div>
 
                         <div>
-                            <label className="mb-0 block text-sm font-medium">
-                                Phone Number
-                            </label>
-
+                            <label className="mb-0 block text-sm font-medium">Phone Number</label>
                             <input
                                 type="text"
                                 name="phone"
@@ -342,10 +278,7 @@ function Register({ onAuthSuccess }) {
                         </div>
 
                         <div>
-                            <label className="mb-0 block text-sm font-medium">
-                                Instagram Handle
-                            </label>
-
+                            <label className="mb-0 block text-sm font-medium">Instagram Handle</label>
                             <input
                                 type="text"
                                 name="instagram_handle"
@@ -362,10 +295,7 @@ function Register({ onAuthSuccess }) {
                 {currentStep === 1 && (
                     <div className="mt-8 space-y-5">
                         <div>
-                            <label className="mb-2 block text-sm font-medium">
-                                Payment Method
-                            </label>
-
+                            <label className="mb-2 block text-sm font-medium">Payment Method</label>
                             <select
                                 name="payment_method"
                                 value={formData.payment_method}
@@ -373,19 +303,14 @@ function Register({ onAuthSuccess }) {
                                 className="w-full duration-500 py-3 text-sm outline-none border-b-2 border-black/20 focus:border-black"
                             >
                                 <option value="UPI">UPI</option>
-                                <option value="BANK">
-                                    Bank Transfer
-                                </option>
+                                <option value="BANK">Bank Transfer</option>
                             </select>
                         </div>
 
                         {formData.payment_method === "BANK" ? (
                             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                                 <div className="md:col-span-2">
-                                    <label className="mb-2 block text-sm font-medium">
-                                        Account Holder Name
-                                    </label>
-
+                                    <label className="mb-2 block text-sm font-medium">Account Holder Name</label>
                                     <input
                                         type="text"
                                         name="bank_account_name"
@@ -397,10 +322,7 @@ function Register({ onAuthSuccess }) {
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">
-                                        Account Number
-                                    </label>
-
+                                    <label className="mb-2 block text-sm font-medium">Account Number</label>
                                     <input
                                         type="text"
                                         name="bank_account_number"
@@ -412,10 +334,7 @@ function Register({ onAuthSuccess }) {
                                 </div>
 
                                 <div>
-                                    <label className="mb-2 block text-sm font-medium">
-                                        IFSC Code
-                                    </label>
-
+                                    <label className="mb-2 block text-sm font-medium">IFSC Code</label>
                                     <input
                                         type="text"
                                         name="bank_ifsc"
@@ -429,20 +348,13 @@ function Register({ onAuthSuccess }) {
                             </div>
                         ) : (
                             <div>
-                                <label className="mb-2 block text-sm font-medium">
-                                    {"UPI ID"}
-                                </label>
-
+                                <label className="mb-2 block text-sm font-medium">UPI ID</label>
                                 <input
                                     type="text"
                                     name="payment_value"
                                     value={formData.payment_value}
                                     onChange={handleChange}
-                                    placeholder={
-                                        formData.payment_method === "PAYPAL"
-                                            ? "you@example.com"
-                                            : "example@upi"
-                                    }
+                                    placeholder="example@upi"
                                     className="w-full duration-500 py-3 text-sm outline-none border-b-2 border-black/20 focus:border-black"
                                 />
                             </div>
@@ -454,26 +366,18 @@ function Register({ onAuthSuccess }) {
                 {currentStep === 2 && (
                     <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2">
                         <div className="relative">
-                            <label className="mb-2 block text-sm font-medium">
-                                Password
-                            </label>
-
+                            <label className="mb-2 block text-sm font-medium">Password</label>
                             <input
-                                type={
-                                    showPassword ? "text" : "password"
-                                }
+                                type={showPassword ? "text" : "password"}
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="********"
                                 className="w-full duration-500 py-3 text-sm outline-none border-b-2 border-black/20 focus:border-black"
                             />
-
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setShowPassword(!showPassword)
-                                }
+                                onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-4 top-[42px] text-xs text-gray-500"
                             >
                                 {showPassword ? "Hide" : "Show"}
@@ -481,35 +385,21 @@ function Register({ onAuthSuccess }) {
                         </div>
 
                         <div className="relative">
-                            <label className="mb-2 block text-sm font-medium">
-                                Confirm Password
-                            </label>
-
+                            <label className="mb-2 block text-sm font-medium">Confirm Password</label>
                             <input
-                                type={
-                                    showConfirmPassword
-                                        ? "text"
-                                        : "password"
-                                }
+                                type={showConfirmPassword ? "text" : "password"}
                                 name="confirmPassword"
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 placeholder="********"
                                 className="w-full duration-500 py-3 text-sm outline-none border-b-2 border-black/20 focus:border-black"
                             />
-
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setShowConfirmPassword(
-                                        !showConfirmPassword
-                                    )
-                                }
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                 className="absolute right-4 top-[42px] text-xs text-gray-500"
                             >
-                                {showConfirmPassword
-                                    ? "Hide"
-                                    : "Show"}
+                                {showConfirmPassword ? "Hide" : "Show"}
                             </button>
                         </div>
                     </div>
@@ -525,8 +415,7 @@ function Register({ onAuthSuccess }) {
                 {/* FOOTER */}
                 <div className="mt-8 flex items-center justify-end md:justify-between">
                     <p className="hidden md:block mt-[-1rem] md:mt-0 text-xs text-gray-500">
-                        By continuing, you agree to our
-                        terms.
+                        By continuing, you agree to our terms.
                     </p>
 
                     <div className="flex gap-3">
@@ -552,11 +441,8 @@ function Register({ onAuthSuccess }) {
                                 disabled={loading}
                                 className="rounded-full bg-emerald-600 px-6 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-70"
                             >
-                                {loading
-                                    ? "Creating..."
-                                    : "Create Account"}
+                                {loading ? "Creating..." : "Create Account"}
                             </button>
-                            
                         )}
                     </div>
                 </div>

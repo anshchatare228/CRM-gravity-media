@@ -42,7 +42,9 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
   };
 
   return (
-    <div className="mt-16 md:mt-0 mb-5 px-5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 pb-6 border-b-2 border-slate-400 md:w-full md:pl-6 md:pr-6 bg-white shadow-md">
+    // added "relative" — the mobile button below is `absolute`, and without a positioned
+    // ancestor it was escaping this header entirely instead of anchoring inside it
+    <div className="relative mt-16 md:mt-0 mb-5 px-5 w-full flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 pb-6 border-b-2 border-slate-400 md:w-full md:pl-6 md:pr-6 bg-black/10 shadow-md">
       <div className="mt-3">
         <h1 className="text-3xl mt-3 md:mt-4 md:text-3xl font-extrabold tracking-tight text-slate-900 font-['rajdhani'] uppercase">
           {TabName}
@@ -52,11 +54,15 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
         </div>
       </div>
 
-      {/* referral code - desktop view (original layout) */}
-      <div className="hidden md:flex items-center gap-2 rounded-2xl bg-white px-5 py-5 border border-slate-200/80 shadow-sm max-w-md sm:w-auto justify-end md:mt-[0 rem] sm:justify-start md:justify-between md:mt-5 h-[4rem] md:w-[32rem]">
+      {/* referral code - desktop view.
+          was: h-[4rem] fixed height (too tight for py-5 + content, risked clipping) -> min-h
+          was: justify-end / sm:justify-start (dead code, this block is hidden below md so those never applied)
+          was: md:mt-[0 rem] (invalid arbitrary value — space inside brackets breaks Tailwind's parser) */}
+      <div className="hidden md:flex items-center gap-2 rounded-2xl bg-white px-5 py-5 border border-slate-200/80 shadow-sm max-w-md sm:w-auto md:justify-between md:mt-5 min-h-[4rem] md:w-[32rem]">
         <div>
           <p className="text-[0.75rem] font-bold tracking-wider text-slate-400 uppercase">Referral Identifier</p>
-          <h2 className="text-xs over  font-bold font-mono tracking-wide text-slate-900 mt-0.5">
+          {/* was: text-xs "over" — typo'd/invalid class, replaced with truncate so long links don't overflow */}
+          <h2 className="text-xs truncate font-bold font-mono tracking-wide text-slate-900 mt-0.5">
             {displayLink}
           </h2>
         </div>
@@ -70,11 +76,9 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
         </button>
       </div>
 
-      {/* mobile view - show only a button that opens a modal with the link and copy button */}
-      <div className="absolute right-[1rem] mt-[1rem] md:hidden items-center gap-4 px-3 py-2 w-max md:mt-5">
-        {/* <p className="font-['rajdhani'] ml-5">
-          REFFERAL
-        </p> */}
+      {/* mobile view - was: absolute right-[1rem] mt-[1rem] with no positioned parent (see fix above),
+          now anchored with top-4 right-4 against the relative container */}
+      <div className="absolute top-4 right-4 md:hidden flex items-center gap-4 px-3 py-2 w-max">
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
@@ -117,6 +121,5 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
         </div>
       )}
     </div>
-
   );
 }
