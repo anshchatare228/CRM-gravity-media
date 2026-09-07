@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import brandLogo from "../assets/logo.png";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 import {
   Menu,
   X,
@@ -31,12 +32,11 @@ export default function Navbar() {
     // { label: "KrazyStore Site", path: "https://krazystore.in", icon: Link2Icon },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("affiliate_token");
-    localStorage.removeItem("affiliate_user");
-    navigate("/login", { replace: true });
-    setIsOpen(false);
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
   };
+
 
   return (
     <>
@@ -95,8 +95,8 @@ export default function Navbar() {
                   setIsOpen(false);
                 }}
                 className={`w-full group relative flex items-center gap-3.5 rounded-sm px-4 py-3.5 text-left text-[0.95rem] font-medium tracking-wide transition-all duration-300 ease-out cursor-pointer overflow-hidden z-10 ${isActive
-                    ? "bg-black text-white shadow-lg shadow-slate-900/10"
-                    : "text-gray-700 hover:text-black before:absolute before:inset-0 before:bg-black/30 before:-translate-x-full hover:before:translate-x-0 before:transition-transform before:duration-600 before:ease-out before:-z-10"
+                  ? "bg-black text-white shadow-lg shadow-slate-900/10"
+                  : "text-gray-700 hover:text-black before:absolute before:inset-0 before:bg-black/30 before:-translate-x-full hover:before:translate-x-0 before:transition-transform before:duration-600 before:ease-out before:-z-10"
                   }
                 `}
               >
