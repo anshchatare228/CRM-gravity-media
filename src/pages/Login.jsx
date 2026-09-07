@@ -1,24 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import brandLogo from "../assets/logo.png";
-
-// ------------------------------------------------------------------
-// MOCK AUTH — replace this function with your real API call later.
-// e.g. const data = await loginAffiliate(formData);
-// ------------------------------------------------------------------
-const mockLoginAffiliate = async (formData) => {
-    await new Promise((res) => setTimeout(res, 700)); // fake network delay
-
-    return {
-        success: true,
-        token: "demo-token-123",
-        affiliate: {
-            name: "Demo Affiliate",
-            email: formData.email,
-            ref_code: "DEMO123",
-        },
-    };
-};
+import { supabase } from "../lib/supabase";
 
 function Login({ onAuthSuccess }) {
     const navigate = useNavigate();
@@ -34,108 +17,138 @@ function Login({ onAuthSuccess }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
     };
 
     const validateForm = () => {
         if (!formData.email || !formData.password) {
             return "Please fill all required fields";
         }
+
         return "";
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        setError("");
+
+        const validationError = validateForm();
+
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         try {
-            setError("");
-
-            const validationError = validateForm();
-            if (validationError) {
-                setError(validationError);
-                return;
-            }
-
             setLoading(true);
 
-            const data = await mockLoginAffiliate(formData);
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password,
+            });
 
-            if (!data.success) {
-                setError(data.message || "Login failed");
+            if (error) {
+                setError("Invalid email or password");
                 return;
             }
 
+            if (!data.user) {
+                setError("Unable to authenticate user");
+                return;
+            }
+
+            /*
+             * Supabase automatically stores the authenticated
+             * session in the browser.
+             */
+
             if (onAuthSuccess) {
-                onAuthSuccess(data.token, data.affiliate);
-            } else {
-                localStorage.setItem("affiliate_token", data.token);
-                localStorage.setItem("affiliate_user", JSON.stringify(data.affiliate));
+                onAuthSuccess(data.session, data.user);
             }
 
             navigate("/dashboard");
+
         } catch (err) {
-            console.log(err);
-            setError("Something went wrong");
+            console.error(err);
+            setError("Something went wrong. Please try again.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            {/* NAVBAR */}
-            <div className="flex items-center justify-between bg-white px-6 py-4 shadow-md sticky top-0 z-50">
-                <div className="flex items-center gap-3 ml-[-13px] md:ml-0">
-                    <img src={brandLogo} alt="Brand" className="h-13 w-auto object-contain" />
-                </div>
+        <div className="min-h-screen bg-neutral-300">
 
-                <button
-                    onClick={() => navigate("/register")}
-                    className="text-[1.1rem] md:text-[1.3rem] text-shadow-black transition md:hover:text-white cursor-pointer duration-300 px-4 py-2 md:bg-black border md:hover:bg-red-600 rounded-xl bg-black text-white md:text-white"
-                >
-                    Sign Up
-                </button>
+            {/* NAVBAR */}
+            <div className="flex items-center justify-between bg-neutral-50 px-6 py-4 shadow-md sticky top-0 z-50">
+                <div className="flex items-center gap-3 ml-[-13px] md:ml-0">
+                    <img
+                        src={brandLogo}
+                        alt="Brand"
+                        className="h-13 w-auto object-contain"
+                    />
+                </div>
             </div>
 
             {/* LOGIN CARD */}
             <div className="flex flex-col min-h-[85vh] items-center justify-center px-4">
-                <h1 className="mt-3 text-[3rem] mt-[-2rem] md:mt-0 font-['rajdhani'] font-bold">
+
+                <h1 className="mt-3 text-[3rem] mt-[-2rem] md:mt-0 font-bold">
                     Welcome Back
                 </h1>
-                <div className="mx-auto mt-5 max-w-[320px] md:max-w-[600px] rounded-3xl bg-white p-8 drop-shadow-2xl border-[2px] border-red-600/60">
-                    <span className="text-[1.6rem] md:text-[1.8rem] font-['rajdhani'] font-extrabold tracking-widest text-red-600">
-                        AFFILIATE LOGIN
+
+                <div className="mx-auto mt-5 max-w-[320px] md:min-w-[30rem] rounded-4xl bg-white p-8 drop-shadow-2xl border-[2px] border-green-600/60">
+
+                    <span className="text-[1.6rem] md:text-[1.8rem] font-sans font-bold tracking-widest text-green-600 self-center">
+                        Please login
                     </span>
 
                     <p className="mt-2 text-sm text-gray-500">
-                        Login to manage your affiliate earnings, payouts and conversions.
+                        Login to manage your earnings, payouts and clients.
                     </p>
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                    <form
+                        onSubmit={handleSubmit}
+                        className="mt-8 mb-8 space-y-6"
+                    >
+
                         {/* EMAIL */}
                         <div>
-                            <label className="mb-2 block text-sm font-medium">Email Address</label>
+                            <label className="mb-2 block text-sm font-medium">
+                                Email Address
+                            </label>
+
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
                                 placeholder="you@example.com"
-                                className="w-full border-b-2 border-black/20 py-3 text-sm outline-none transition duration-500 focus:border-black"
+                                className="w-full border-b-2 border-black/20 py-3 text-sm outline-none transition duration-500 focus:border-green-600"
                             />
                         </div>
 
                         {/* PASSWORD */}
                         <div className="relative">
-                            <label className="mb-2 block text-sm font-medium">Password</label>
+
+                            <label className="mb-2 block text-sm font-medium">
+                                Password
+                            </label>
+
                             <input
                                 type={showPassword ? "text" : "password"}
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="********"
-                                className="w-full border-b-2 border-black/20 py-3 pr-16 text-sm outline-none transition duration-500 focus:border-black"
+                                className="w-full border-b-2 border-black/20 py-3 pr-16 text-sm outline-none transition duration-500 focus:border-green-600"
                             />
+
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
@@ -143,6 +156,7 @@ function Login({ onAuthSuccess }) {
                             >
                                 {showPassword ? "Hide" : "Show"}
                             </button>
+
                         </div>
 
                         {/* ERROR */}
@@ -160,20 +174,9 @@ function Login({ onAuthSuccess }) {
                         >
                             {loading ? "Logging In..." : "Login"}
                         </button>
+
                     </form>
 
-                    {/* FOOTER */}
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-500">
-                            Don&apos;t have an account?{" "}
-                            <span
-                                onClick={() => navigate("/register")}
-                                className="cursor-pointer font-semibold text-black"
-                            >
-                                Register
-                            </span>
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>
