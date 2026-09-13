@@ -18,7 +18,7 @@ const getStatus = (client) => {
 
 const STATUS_STYLE = {
     active: "bg-emerald-50 text-emerald-600",
-    completed: "bg-slate-100 text-black/90",
+    completed: "bg-slate-100 text-slate-500",
     upcoming: "bg-sky-50 text-sky-600",
     expired: "bg-amber-50 text-amber-600",
 };
@@ -43,7 +43,7 @@ export default function Clients() {
 
     const [clients, setClients] = useState([]);
     const [founders, setFounders] = useState([]);
-    const [milestoneStats, setMilestoneStats] = useState({}); // { [clientId]: { done, total } }
+    const [taskStats, setTaskStats] = useState({}); // { [clientId]: { done, total } }
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
     const [query, setQuery] = useState("");
@@ -51,22 +51,22 @@ export default function Clients() {
     const fetchClients = async () => {
         setLoading(true);
 
-        const [{ data: clientData, error }, { data: founderData }, { data: milestoneData }] = await Promise.all([
+        const [{ data: clientData, error }, { data: founderData }, { data: taskData }] = await Promise.all([
             supabase.from("clients").select("*").order("created_at", { ascending: false }),
             supabase.from("founders").select("*").order("name"),
-            supabase.from("client_milestones").select("client_id, done"),
+            supabase.from("client_tasks").select("client_id, done"),
         ]);
 
         if (!error) setClients(clientData || []);
         setFounders(founderData || []); // stays empty if founders table isn't set up yet
 
         const stats = {};
-        (milestoneData || []).forEach((m) => {
-            if (!stats[m.client_id]) stats[m.client_id] = { done: 0, total: 0 };
-            stats[m.client_id].total += 1;
-            if (m.done) stats[m.client_id].done += 1;
+        (taskData || []).forEach((t) => {
+            if (!stats[t.client_id]) stats[t.client_id] = { done: 0, total: 0 };
+            stats[t.client_id].total += 1;
+            if (t.done) stats[t.client_id].done += 1;
         });
-        setMilestoneStats(stats);
+        setTaskStats(stats);
 
         setLoading(false);
     };
@@ -98,7 +98,7 @@ export default function Clients() {
             <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
                 <Navbar />
                 <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-16">
-                    <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-full max-w-md rounded-none bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
                         <Loader2 className="animate-spin text-slate-700" size={36} />
                         <p className="text-sm font-medium text-slate-600">Loading clients...</p>
                     </div>
@@ -117,7 +117,7 @@ export default function Clients() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                             <div>
                                 <h1 className="text-2xl font-extrabold text-slate-900">Clients</h1>
-                                <p className="text-sm text-black/90 mt-1">
+                                <p className="text-sm text-slate-500 mt-1">
                                     {clients.length} total &middot; monthly retainers &amp; fixed-term contracts
                                 </p>
                             </div>
@@ -139,7 +139,7 @@ export default function Clients() {
                                     <button
                                         key={t.key}
                                         onClick={() => setFilter(t.key)}
-                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${filter === t.key ? "bg-slate-900 text-white" : "text-black/90 hover:text-slate-800"
+                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${filter === t.key ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"
                                             }`}
                                     >
                                         {t.icon} {t.label}
@@ -157,10 +157,10 @@ export default function Clients() {
                             </div>
                         </div>
 
-                        <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
-                            <div className="hidden md:grid grid-cols-[1.8fr_1fr_0.9fr_1.3fr_1.3fr_auto] gap-4 px-6 py-3 text-s font-semibold font-mono tracking-wide text-slate-400 uppercase border-b border-gray-100">
+                        <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
+                            <div className="hidden md:grid grid-cols-[1.8fr_1fr_0.9fr_1.3fr_1.3fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-slate-400 uppercase border-b border-gray-100">
                                 <span>Client</span>
-                                <span>Type</span>
+                                <span>Package</span>
                                 <span>Status</span>
                                 <span>Payment</span>
                                 <span>Delivery</span>
@@ -177,7 +177,7 @@ export default function Clients() {
                                 const total = Number(c.payment || 0);
                                 const paymentPct = total ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
-                                const ms = milestoneStats[c.id] || { done: 0, total: 0 };
+                                const ms = taskStats[c.id] || { done: 0, total: 0 };
                                 const deliveryPct = ms.total ? Math.min(100, Math.round((ms.done / ms.total) * 100)) : 0;
 
                                 return (
@@ -187,7 +187,7 @@ export default function Clients() {
                                         className="grid grid-cols-2 md:grid-cols-[1.8fr_1fr_0.9fr_1.3fr_1.3fr_auto] gap-4 px-6 py-4 items-center border-b border-gray-50 last:border-0 hover:bg-slate-50/60 transition cursor-pointer"
                                     >
                                         <div className="col-span-2 md:col-span-1 flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-slate-100 text-black/90 text-xs font-bold flex items-center justify-center shrink-0">
+                                            <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 text-xs font-bold flex items-center justify-center shrink-0">
                                                 {initials(c.name)}
                                             </div>
                                             <div className="min-w-0">

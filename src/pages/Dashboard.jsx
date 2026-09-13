@@ -25,7 +25,7 @@ import {
 // BUILD DASHBOARD FROM REAL SUPABASE DATA
 // ------------------------------------------------------------------
 
-const buildDashboard = (clients, invoices, founders) => {
+const buildDashboard = (clients, founders, payouts) => {
 
     // --------------------------------------------------------------
     // CLIENTS
@@ -53,12 +53,6 @@ const buildDashboard = (clients, invoices, founders) => {
         };
     };
 
-    /*
-        UI terminology:
-        "monthly" = database "monthly"
-        "contract"   = database "contract"
-    */
-
     const clientStats = {
         monthly: makeClientBucket("monthly"),
         contract: makeClientBucket("contract"),
@@ -66,51 +60,24 @@ const buildDashboard = (clients, invoices, founders) => {
 
 
     // --------------------------------------------------------------
-    // PAYMENTS
+    // PAYMENTS — driven directly by each client's payment / paid_amount
+    // (not the invoices table, which can drift out of sync)
     // --------------------------------------------------------------
 
     const makePaymentBucket = (type) => {
+        const typeClients = clients.filter((client) => client.type === type);
 
-        // Get IDs of clients belonging to this type
-        const clientIds = new Set(
-            clients
-                .filter((client) => client.type === type)
-                .map((client) => client.id)
-        );
-
-        // Get invoices belonging to those clients
-        const typeInvoices = invoices.filter((invoice) =>
-            clientIds.has(invoice.client_id)
-        );
-
-
-        // Total amount billed
-        const generated = typeInvoices.reduce(
-            (sum, invoice) =>
-                sum + Number(invoice.amount || 0),
+        const generated = typeClients.reduce(
+            (sum, client) => sum + Number(client.payment || 0),
             0
         );
 
+        const collected = typeClients.reduce(
+            (sum, client) => sum + Number(client.paid_amount || 0),
+            0
+        );
 
-        // Total amount actually paid
-        const collected = typeInvoices
-            .filter((invoice) => invoice.status === "paid")
-            .reduce(
-                (sum, invoice) =>
-                    sum + Number(invoice.amount || 0),
-                0
-            );
-
-
-        // Total amount still pending
-        const pending = typeInvoices
-            .filter((invoice) => invoice.status === "pending")
-            .reduce(
-                (sum, invoice) =>
-                    sum + Number(invoice.amount || 0),
-                0
-            );
-
+        const pending = Math.max(0, generated - collected);
 
         return {
             generated,
@@ -128,27 +95,29 @@ const buildDashboard = (clients, invoices, founders) => {
 
     // --------------------------------------------------------------
     // FOUNDER SPLIT — attributed via client.founder_id
+    // "paid" = actual payouts logged in founder_payouts
+    // "pending" = commission earned on collected revenue, minus what's
+    //             already been paid out
     // --------------------------------------------------------------
 
     const founderStats = founders.map((founder) => {
         const theirClients = clients.filter((c) => c.founder_id === founder.id);
-        const clientIds = new Set(theirClients.map((c) => c.id));
-        const theirInvoices = invoices.filter((i) => clientIds.has(i.client_id));
 
-        const generated = theirInvoices.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-        const collected = theirInvoices
-            .filter((i) => i.status === "paid")
-            .reduce((sum, i) => sum + Number(i.amount || 0), 0);
-        const pending = theirInvoices
-            .filter((i) => i.status === "pending")
-            .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+        const collected = theirClients.reduce((sum, c) => sum + Number(c.paid_amount || 0), 0);
+        const earnedCut = Math.round((collected * founder.commission) / 100);
+
+        const paidOut = payouts
+            .filter((p) => p.founder_id === founder.id)
+            .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+        const pendingCut = Math.max(0, earnedCut - paidOut);
 
         return {
             name: founder.name,
             commission: founder.commission,
             clientCount: theirClients.length,
-            paid: Math.round((collected * founder.commission) / 100),
-            pending: Math.round((pending * founder.commission) / 100),
+            paid: paidOut,
+            pending: pendingCut,
         };
     });
 
@@ -173,7 +142,6 @@ const buildDashboard = (clients, invoices, founders) => {
             const month = date.getMonth();
 
 
-            // Find clients created during this month
             const clientsThisMonth = clients.filter(
                 (client) => {
 
@@ -252,8 +220,7 @@ export default function Dashboard() {
                 setLoading(true);
 
 
-                // Fetch clients, invoices, and founders simultaneously
-                const [clientsRes, invoicesRes, foundersRes] = await Promise.all([
+                const [clientsRes, foundersRes, payoutsRes] = await Promise.all([
 
                     supabase
                         .from("clients")
@@ -263,41 +230,38 @@ export default function Dashboard() {
                         }),
 
                     supabase
-                        .from("invoices")
-                        .select("*"),
-
-                    supabase
                         .from("founders")
                         .select("*")
                         .order("name"),
+
+                    supabase
+                        .from("founder_payouts")
+                        .select("*"),
                 ]);
 
 
-                // Handle clients query error
                 if (clientsRes.error) {
                     throw clientsRes.error;
                 }
 
 
-                // Handle invoices query error
-                if (invoicesRes.error) {
-                    throw invoicesRes.error;
-                }
-
-
-                // Founders table may not exist yet — degrade gracefully
+                // Founders / payouts tables may not exist yet — degrade gracefully
                 const founders = foundersRes.error ? [] : (foundersRes.data || []);
                 if (foundersRes.error) {
                     console.warn("Founders table not set up yet:", foundersRes.error.message);
                 }
 
+                const payouts = payoutsRes.error ? [] : (payoutsRes.data || []);
+                if (payoutsRes.error) {
+                    console.warn("Founder payouts table not set up yet:", payoutsRes.error.message);
+                }
 
-                // Build dashboard from real database data
+
                 const dashboardData =
                     buildDashboard(
                         clientsRes.data || [],
-                        invoicesRes.data || [],
-                        founders
+                        founders,
+                        payouts
                     );
 
 
@@ -388,7 +352,7 @@ export default function Dashboard() {
 
     return (
 
-        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
+        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-stone-100">
 
             <Navbar />
 
@@ -526,10 +490,6 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_1fr] gap-5">
 
 
-                            {/* ------------------------------------------------
-                                FOUNDER CARDS
-                            ------------------------------------------------ */}
-
                             <div className="grid gap-5">
 
                                 {dashboard.founders.length === 0 ? (
@@ -556,10 +516,6 @@ export default function Dashboard() {
 
                             </div>
 
-
-                            {/* ------------------------------------------------
-                                MONTHLY CLIENT CHART
-                            ------------------------------------------------ */}
 
                             <div className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
 
@@ -690,7 +646,7 @@ function ClientTypeSwitch({
                     }
                 `}
             >
-                monthly
+                Monthly
             </button>
 
 
@@ -771,7 +727,7 @@ function FounderCard({
                 <div>
 
                     <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">
-                        Paid
+                        Taken
                     </p>
 
                     <p className="text-lg font-bold text-emerald-600">
@@ -784,7 +740,7 @@ function FounderCard({
                 <div>
 
                     <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">
-                        Pending
+                        Owed
                     </p>
 
                     <p className="text-lg font-bold text-amber-500">
@@ -810,7 +766,7 @@ function FounderCard({
 
             <p className="text-[0.65rem] text-gray-400 mt-1">
 
-                {pct}% of their share paid out
+                {pct}% of their earned cut taken out
 
             </p>
 

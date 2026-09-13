@@ -1,17 +1,20 @@
-// src/pages/Internals.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
-import { Loader2, Users, Pencil, Check, X, Plus, IndianRupee } from "lucide-react";
+import { Loader2, Users, Pencil, Check, X, Plus, IndianRupee, Trash2, Wallet } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 const currency = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
+const formatDate = (d) =>
+    new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+
 export default function Internals() {
     const [founders, setFounders] = useState([]);
     const [clients, setClients] = useState([]);
-    const [invoices, setInvoices] = useState([]);
+    const [payouts, setPayouts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tableMissing, setTableMissing] = useState(false);
+    const [payoutsTableMissing, setPayoutsTableMissing] = useState(false);
 
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({ name: "", commission: "" });
@@ -19,12 +22,20 @@ export default function Internals() {
     const [addOpen, setAddOpen] = useState(false);
     const [addForm, setAddForm] = useState({ name: "", commission: "" });
 
+    const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+    const [payoutForm, setPayoutForm] = useState({
+        founderId: "",
+        amount: "",
+        paidOn: new Date().toISOString().slice(0, 10),
+        notes: "",
+    });
+
     const fetchAll = async () => {
         setLoading(true);
-        const [foundersRes, clientsRes, invoicesRes] = await Promise.all([
+        const [foundersRes, clientsRes, payoutsRes] = await Promise.all([
             supabase.from("founders").select("*").order("name"),
             supabase.from("clients").select("*"),
-            supabase.from("invoices").select("*"),
+            supabase.from("founder_payouts").select("*").order("paid_on", { ascending: false }),
         ]);
 
         if (foundersRes.error) {
@@ -35,8 +46,16 @@ export default function Internals() {
             setTableMissing(false);
             setFounders(foundersRes.data || []);
         }
+
+        if (payoutsRes.error) {
+            setPayoutsTableMissing(true);
+            setPayouts([]);
+        } else {
+            setPayoutsTableMissing(false);
+            setPayouts(payoutsRes.data || []);
+        }
+
         setClients(clientsRes.data || []);
-        setInvoices(invoicesRes.data || []);
         setLoading(false);
     };
 
@@ -44,19 +63,21 @@ export default function Internals() {
         fetchAll();
     }, []);
 
+    // Revenue is driven by each client's own payment / paid_amount fields —
+    // not the invoices table, which can drift out of sync.
     const stats = useMemo(() => {
         return founders.map((f) => {
             const theirClients = clients.filter((c) => c.founder_id === f.id);
-            const clientIds = new Set(theirClients.map((c) => c.id));
-            const theirInvoices = invoices.filter((i) => clientIds.has(i.client_id));
 
-            const generated = theirInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
-            const collected = theirInvoices
-                .filter((i) => i.status === "paid")
-                .reduce((s, i) => s + Number(i.amount || 0), 0);
-            const pending = theirInvoices
-                .filter((i) => i.status === "pending")
-                .reduce((s, i) => s + Number(i.amount || 0), 0);
+            const generated = theirClients.reduce((s, c) => s + Number(c.payment || 0), 0);
+            const collected = theirClients.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
+            const pending = Math.max(0, generated - collected);
+
+            const earnedCut = Math.round((collected * f.commission) / 100);
+            const paidOut = payouts
+                .filter((p) => p.founder_id === f.id)
+                .reduce((s, p) => s + Number(p.amount || 0), 0);
+            const cutPending = Math.max(0, earnedCut - paidOut);
 
             return {
                 ...f,
@@ -64,11 +85,18 @@ export default function Internals() {
                 generated,
                 collected,
                 pending,
-                cutPaid: Math.round((collected * f.commission) / 100),
-                cutPending: Math.round((pending * f.commission) / 100),
+                earnedCut,
+                cutPaid: paidOut,
+                cutPending,
             };
         });
-    }, [founders, clients, invoices]);
+    }, [founders, clients, payouts]);
+
+    const founderMap = useMemo(() => {
+        const map = {};
+        founders.forEach((f) => (map[f.id] = f.name));
+        return map;
+    }, [founders]);
 
     const unassignedCount = useMemo(
         () => clients.filter((c) => !c.founder_id).length,
@@ -111,6 +139,35 @@ export default function Internals() {
         setFounders((prev) => [...prev, data]);
         setAddForm({ name: "", commission: "" });
         setAddOpen(false);
+    };
+
+    // ---------- Payouts ----------
+    const openPayoutModal = (founderId = "") => {
+        setPayoutForm({ founderId, amount: "", paidOn: new Date().toISOString().slice(0, 10), notes: "" });
+        setPayoutModalOpen(true);
+    };
+
+    const addPayout = async () => {
+        if (!payoutForm.founderId || !payoutForm.amount) return;
+        const { data, error } = await supabase
+            .from("founder_payouts")
+            .insert({
+                founder_id: payoutForm.founderId,
+                amount: Number(payoutForm.amount),
+                paid_on: payoutForm.paidOn,
+                notes: payoutForm.notes || null,
+            })
+            .select()
+            .single();
+        if (error) return;
+        setPayouts((prev) => [data, ...prev]);
+        setPayoutModalOpen(false);
+    };
+
+    const deletePayout = async (id) => {
+        const { error } = await supabase.from("founder_payouts").delete().eq("id", id);
+        if (error) return;
+        setPayouts((prev) => prev.filter((p) => p.id !== id));
     };
 
     if (loading) {
@@ -159,7 +216,7 @@ export default function Internals() {
                         <>
                             {unassignedCount > 0 && (
                                 <div className="rounded-2xl bg-amber-50 text-amber-700 text-xs font-semibold px-4 py-3 mb-5">
-                                    {unassignedCount} client{unassignedCount === 1 ? "" : "s"} not yet assigned to a founder — assign them from the client's Details tab.
+                                    {unassignedCount} client{unassignedCount === 1 ? "" : "s"} not yet assigned to a founder — assign them from the client's edit page.
                                 </div>
                             )}
 
@@ -224,18 +281,94 @@ export default function Internals() {
                                                 </div>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 mb-4">
                                                 <div>
-                                                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Paid)</p>
+                                                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Taken)</p>
                                                     <p className="text-sm font-bold text-emerald-600">{currency(f.cutPaid)}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Pending)</p>
+                                                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Owed)</p>
                                                     <p className="text-sm font-bold text-amber-500">{currency(f.cutPending)}</p>
                                                 </div>
                                             </div>
+
+                                            {!payoutsTableMissing && (
+                                                <button
+                                                    onClick={() => openPayoutModal(f.id)}
+                                                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-gray-200 text-slate-600 text-xs font-semibold px-3 py-2 hover:bg-slate-50 transition"
+                                                >
+                                                    <Wallet size={13} /> Log Payout
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
+                                </div>
+                            )}
+
+                            {/* ==========================================
+                                PAYOUT HISTORY TABLE
+                            ========================================== */}
+                            {!payoutsTableMissing ? (
+                                founders.length > 0 && (
+                                    <div className="mt-8">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2 text-xs font-semibold tracking-[3px] text-black uppercase">
+                                                <Wallet size={14} />
+                                                Payout History
+                                            </div>
+                                            <button
+                                                onClick={() => openPayoutModal()}
+                                                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold px-4 py-2 hover:bg-slate-800 transition"
+                                            >
+                                                <Plus size={13} /> Log Payout
+                                            </button>
+                                        </div>
+
+                                        <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
+                                            <div className="hidden md:grid grid-cols-[1.2fr_1fr_1fr_1.4fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-slate-400 uppercase border-b border-gray-100">
+                                                <span>Founder</span>
+                                                <span>Amount</span>
+                                                <span>Date</span>
+                                                <span>Notes</span>
+                                                <span></span>
+                                            </div>
+
+                                            {payouts.length === 0 && (
+                                                <div className="px-6 py-10 text-center text-sm text-slate-400">
+                                                    No payouts logged yet.
+                                                </div>
+                                            )}
+
+                                            {payouts.map((p) => (
+                                                <div
+                                                    key={p.id}
+                                                    className="grid grid-cols-2 md:grid-cols-[1.2fr_1fr_1fr_1.4fr_auto] gap-4 px-6 py-3.5 items-center border-b border-gray-50 last:border-0"
+                                                >
+                                                    <div className="col-span-2 md:col-span-1 font-semibold text-sm text-slate-800">
+                                                        {founderMap[p.founder_id] || "Unknown"}
+                                                    </div>
+                                                    <div className="text-sm font-semibold text-emerald-600">{currency(p.amount)}</div>
+                                                    <div className="text-sm text-slate-500">{formatDate(p.paid_on)}</div>
+                                                    <div className="text-sm text-slate-500 truncate">{p.notes || "—"}</div>
+                                                    <div className="flex justify-end">
+                                                        <button
+                                                            onClick={() => deletePayout(p.id)}
+                                                            className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="mt-8 rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 text-center">
+                                    <p className="text-sm font-semibold text-slate-700">The founder payouts table isn't set up yet.</p>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        Run the founder_payouts migration in Supabase, then refresh this page.
+                                    </p>
                                 </div>
                             )}
                         </>
@@ -286,6 +419,74 @@ export default function Internals() {
                                 className="flex-1 rounded-full bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {payoutModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50" onClick={() => setPayoutModalOpen(false)}>
+                    <div className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-lg font-bold text-slate-900">Log Payout</h2>
+                            <button onClick={() => setPayoutModalOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Founder</label>
+                                <select
+                                    value={payoutForm.founderId}
+                                    onChange={(e) => setPayoutForm((f) => ({ ...f, founderId: e.target.value }))}
+                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                >
+                                    <option value="">Select founder</option>
+                                    {founders.map((fd) => (
+                                        <option key={fd.id} value={fd.id}>{fd.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Amount (₹)</label>
+                                <input
+                                    type="number"
+                                    value={payoutForm.amount}
+                                    onChange={(e) => setPayoutForm((f) => ({ ...f, amount: e.target.value }))}
+                                    placeholder="e.g. 15000"
+                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Date</label>
+                                <input
+                                    type="date"
+                                    value={payoutForm.paidOn}
+                                    onChange={(e) => setPayoutForm((f) => ({ ...f, paidOn: e.target.value }))}
+                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Notes (optional)</label>
+                                <input
+                                    value={payoutForm.notes}
+                                    onChange={(e) => setPayoutForm((f) => ({ ...f, notes: e.target.value }))}
+                                    placeholder="e.g. UPI transfer"
+                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setPayoutModalOpen(false)} className="flex-1 rounded-full border border-gray-200 py-2.5 text-sm font-semibold text-black/90 hover:bg-slate-50">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={addPayout}
+                                disabled={!payoutForm.founderId || !payoutForm.amount}
+                                className="flex-1 rounded-full bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Save
                             </button>
                         </div>
                     </div>

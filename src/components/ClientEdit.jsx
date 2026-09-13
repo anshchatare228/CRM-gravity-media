@@ -1,4 +1,3 @@
-// src/components/ClientDetailModal.jsx
 import React, { useEffect, useState } from "react";
 import { X, Plus, Trash2, CheckCircle2, Circle, FileText, Receipt, Milestone, Pencil, Repeat, FileSignature } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -15,7 +14,7 @@ const buildForm = (client) => ({
     founderId: client.founder_id || "",
 });
 
-export default function ClientDetailModal({ client, founders = [], onClose, onClientUpdate }) {
+export default function ClientEdit({ client, founders = [], onClose, onClientUpdate }) {
     const [tab, setTab] = useState("timeline");
     const [tasks, setTasks] = useState([]);
     const [milestones, setMilestones] = useState([]);
