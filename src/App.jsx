@@ -4,6 +4,7 @@ import Clients from "./pages/Clients";
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
+import Internals from './pages/Internals';
 // import Internals from "./pages/Internals";
 
 export default function App() {
@@ -23,11 +24,21 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/clients"
           element={
             <ProtectedRoute>
               <Clients />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/internals"
+          element={
+            <ProtectedRoute>
+              <Internals />
             </ProtectedRoute>
           }
         />

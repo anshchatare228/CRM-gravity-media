@@ -1,11 +1,21 @@
 // src/components/ClientDetailModal.jsx
 import React, { useEffect, useState } from "react";
-import { X, Plus, Trash2, CheckCircle2, Circle, FileText, Receipt, Milestone } from "lucide-react";
+import { X, Plus, Trash2, CheckCircle2, Circle, FileText, Receipt, Milestone, Pencil, Repeat, FileSignature } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 const currency = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-export default function ClientDetailModal({ client, onClose, onClientUpdate }) {
+const buildForm = (client) => ({
+    name: client.name,
+    type: client.type,
+    payment: client.payment,
+    startDate: client.start_date,
+    endDate: client.end_date || "",
+    notes: client.notes || "",
+    founderId: client.founder_id || "",
+});
+
+export default function ClientDetailModal({ client, founders = [], onClose, onClientUpdate }) {
     const [tab, setTab] = useState("timeline");
     const [tasks, setTasks] = useState([]);
     const [milestones, setMilestones] = useState([]);
@@ -15,6 +25,15 @@ export default function ClientDetailModal({ client, onClose, onClientUpdate }) {
     const [newTask, setNewTask] = useState("");
     const [milestoneForm, setMilestoneForm] = useState({ title: "", dueDate: "" });
     const [invoiceForm, setInvoiceForm] = useState({ description: "", amount: "", issueDate: new Date().toISOString().slice(0, 10) });
+
+    const [form, setForm] = useState(() => (client ? buildForm(client) : buildForm({})));
+    const [savingDetails, setSavingDetails] = useState(false);
+    const [savedFlash, setSavedFlash] = useState(false);
+
+    useEffect(() => {
+        if (!client) return;
+        setForm(buildForm(client));
+    }, [client?.id]);
 
     useEffect(() => {
         if (!client) return;
@@ -131,9 +150,38 @@ export default function ClientDetailModal({ client, onClose, onClientUpdate }) {
         setInvoices((prev) => prev.map((i) => (i.id === invoice.id ? { ...i, status: nextStatus } : i)));
     };
 
+    // ---------- Details / edit ----------
+    const setDuration = (months) => {
+        if (!form.startDate) return;
+        const end = new Date(form.startDate);
+        end.setMonth(end.getMonth() + Number(months));
+        setForm((f) => ({ ...f, endDate: end.toISOString().slice(0, 10) }));
+    };
+
+    const saveDetails = async () => {
+        if (!form.name.trim() || !form.payment || !form.startDate) return;
+        setSavingDetails(true);
+        const payload = {
+            name: form.name.trim(),
+            type: form.type,
+            payment: Number(form.payment),
+            start_date: form.startDate,
+            end_date: form.endDate || null,
+            notes: form.notes,
+            founder_id: form.founderId || null,
+        };
+        const { error } = await supabase.from("clients").update(payload).eq("id", client.id);
+        setSavingDetails(false);
+        if (error) return;
+        onClientUpdate(client.id, payload);
+        setSavedFlash(true);
+        setTimeout(() => setSavedFlash(false), 1500);
+    };
+
     if (!client) return null;
 
     const TABS = [
+        { key: "details", label: "Details", icon: <Pencil size={14} /> },
         { key: "timeline", label: "Timeline", icon: <Milestone size={14} /> },
         { key: "tasks", label: "Work", icon: <FileText size={14} /> },
         { key: "invoices", label: "Invoices", icon: <Receipt size={14} /> },
@@ -147,10 +195,10 @@ export default function ClientDetailModal({ client, onClose, onClientUpdate }) {
             >
                 <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">{client.name}</h2>
+                        <h2 className="text-lg font-bold text-slate-900">{form.name || client.name}</h2>
                         <p className="text-xs text-slate-400 mt-0.5">
-                            {client.type === "monthly" ? "Monthly retainer" : "Contract"} · {currency(client.payment)}
-                            {client.type === "monthly" ? "/mo" : " total"}
+                            {form.type === "monthly" ? "Monthly retainer" : "Contract"} · {currency(form.payment)}
+                            {form.type === "monthly" ? "/mo" : " total"}
                         </p>
                     </div>
                     <button onClick={onClose} className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
@@ -158,7 +206,7 @@ export default function ClientDetailModal({ client, onClose, onClientUpdate }) {
                     </button>
                 </div>
 
-                <div className="flex gap-1 px-6 pt-4">
+                <div className="flex gap-1 px-6 pt-4 flex-wrap">
                     {TABS.map((t) => (
                         <button
                             key={t.key}
@@ -172,7 +220,128 @@ export default function ClientDetailModal({ client, onClose, onClientUpdate }) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-6 py-5">
-                    {loading ? (
+                    {tab === "details" ? (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Client Name</label>
+                                <input
+                                    value={form.name}
+                                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                                    placeholder="e.g. Bloom & Co Skincare"
+                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Client Type</label>
+                                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setForm((f) => ({ ...f, type: "monthly" }))}
+                                        className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${form.type === "monthly" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-slate-500"
+                                            }`}
+                                    >
+                                        <Repeat size={14} /> Monthly
+                                    </button>
+                                    <button
+                                        onClick={() => setForm((f) => ({ ...f, type: "contract" }))}
+                                        className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${form.type === "contract" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-slate-500"
+                                            }`}
+                                    >
+                                        <FileSignature size={14} /> Contract
+                                    </button>
+                                </div>
+                            </div>
+
+                            {founders.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Founder</label>
+                                    <select
+                                        value={form.founderId}
+                                        onChange={(e) => setForm((f) => ({ ...f, founderId: e.target.value }))}
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                    >
+                                        <option value="">Unassigned</option>
+                                        {founders.map((fd) => (
+                                            <option key={fd.id} value={fd.id}>{fd.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                    {form.type === "monthly" ? "Monthly Fee (₹)" : "Total Contract Value (₹)"}
+                                </label>
+                                <input
+                                    type="number"
+                                    value={form.payment}
+                                    onChange={(e) => setForm((f) => ({ ...f, payment: e.target.value }))}
+                                    placeholder="e.g. 45000"
+                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Start Date</label>
+                                    <input
+                                        type="date"
+                                        value={form.startDate}
+                                        onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                        End Date {form.type === "monthly" && <span className="normal-case font-normal">(optional)</span>}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={form.endDate}
+                                        onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    />
+                                </div>
+                            </div>
+
+                            {form.type === "contract" && (
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Quick Duration</label>
+                                    <div className="mt-1.5 flex gap-2">
+                                        {[1, 3, 6, 12].map((m) => (
+                                            <button
+                                                key={m}
+                                                onClick={() => setDuration(m)}
+                                                disabled={!form.startDate}
+                                                className="flex-1 rounded-xl border border-gray-200 py-2 text-xs font-semibold text-slate-500 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {m}mo
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Notes</label>
+                                <textarea
+                                    value={form.notes}
+                                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                                    placeholder="Scope, deliverables, anything worth remembering..."
+                                    rows={3}
+                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 resize-none"
+                                />
+                            </div>
+
+                            <button
+                                onClick={saveDetails}
+                                disabled={!form.name.trim() || !form.payment || !form.startDate || savingDetails}
+                                className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                            >
+                                {savingDetails ? "Saving..." : savedFlash ? "Saved ✓" : "Save Changes"}
+                            </button>
+                        </div>
+                    ) : loading ? (
                         <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
                     ) : tab === "timeline" ? (
                         <div>
