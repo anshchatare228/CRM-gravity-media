@@ -118,7 +118,7 @@ export default function Internals() {
             <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
                 <Navbar />
                 <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-16">
-                    <div className="w-full max-w-md rounded-3xl bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
                         <Loader2 className="animate-spin text-slate-700" size={36} />
                         <p className="text-sm font-medium text-slate-600">Loading internals...</p>
                     </div>
@@ -136,7 +136,7 @@ export default function Internals() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-2xl font-extrabold text-slate-900">Internals</h1>
-                            <p className="text-sm text-slate-500 mt-1">Founder commission cuts, client attribution &amp; revenue split</p>
+                            <p className="text-sm text-black/90 mt-1">Founder commission cuts, client attribution &amp; revenue split</p>
                         </div>
                         {!tableMissing && (
                             <button
@@ -149,7 +149,7 @@ export default function Internals() {
                     </div>
 
                     {tableMissing ? (
-                        <div className="rounded-3xl bg-white border border-gray-200 shadow-sm px-6 py-10 text-center">
+                        <div className="rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-10 text-center">
                             <p className="text-sm font-semibold text-slate-700">The founders table isn't set up yet.</p>
                             <p className="text-xs text-slate-400 mt-1">
                                 Run the founders table migration in Supabase, then refresh this page.
@@ -164,13 +164,13 @@ export default function Internals() {
                             )}
 
                             {founders.length === 0 ? (
-                                <div className="rounded-3xl bg-white border border-gray-200 shadow-sm px-6 py-10 text-center text-sm text-slate-400">
+                                <div className="rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-10 text-center text-sm text-slate-400">
                                     No founders yet — add one to get started.
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     {stats.map((f) => (
-                                        <div key={f.id} className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+                                        <div key={f.id} className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
                                             <div className="flex items-center justify-between mb-5">
                                                 {editingId === f.id ? (
                                                     <input
@@ -245,7 +245,7 @@ export default function Internals() {
 
             {addOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50" onClick={() => setAddOpen(false)}>
-                    <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-bold text-slate-900">Add Founder</h2>
                             <button onClick={() => setAddOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
@@ -254,16 +254,16 @@ export default function Internals() {
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</label>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Name</label>
                                 <input
                                     value={addForm.name}
                                     onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Founder C"
-                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Commission (%)</label>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Commission (%)</label>
                                 <div className="relative mt-1.5">
                                     <IndianRupee size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                                     <input
@@ -271,13 +271,13 @@ export default function Internals() {
                                         value={addForm.commission}
                                         onChange={(e) => setAddForm((f) => ({ ...f, commission: e.target.value }))}
                                         placeholder="e.g. 10"
-                                        className="w-full rounded-xl border border-gray-200 pl-9 pr-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="w-full rounded-lg border border-gray-200 pl-9 pr-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                             </div>
                         </div>
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setAddOpen(false)} className="flex-1 rounded-full border border-gray-200 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50">
+                            <button onClick={() => setAddOpen(false)} className="flex-1 rounded-full border border-gray-200 py-2.5 text-sm font-semibold text-black/90 hover:bg-slate-50">
                                 Cancel
                             </button>
                             <button

@@ -60,7 +60,7 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
       <div className="absolute top-4 right-4 md:hidden flex items-center gap-4 px-3 py-2 w-max">
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
+          className="flex items-center gap-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm cursor-pointer"
         >
           <Link size={14}/>
           <span>Show Link</span>
@@ -71,7 +71,7 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-lg p-4 max-w-sm w-[92%] mx-4">
+          <div className="relative bg-white rounded-lg shadow-lg p-4 max-w-sm w-[92%] mx-4">
             <div className="flex items-start justify-between mb-3">
               <h3 className="text-lg font-bold font-['rajdhani']">Your referral link</h3>
               <button onClick={() => setShowModal(false)} className="text-white bg-black px-2 rounded-lg">Close</button>
@@ -85,7 +85,7 @@ export default function UpperNav({ TabName, Name, RefCode, RefLink, SpaceName, i
                   handleCopy();
                   setShowModal(false);
                 }}
-                className="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm"
+                className="flex items-center gap-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm"
               >
                 {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                 <span>{copied ? "Copied!" : "Copy"}</span>

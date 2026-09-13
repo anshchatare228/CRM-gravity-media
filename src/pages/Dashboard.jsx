@@ -55,12 +55,12 @@ const buildDashboard = (clients, invoices, founders) => {
 
     /*
         UI terminology:
-        "continuous" = database "monthly"
+        "monthly" = database "monthly"
         "contract"   = database "contract"
     */
 
     const clientStats = {
-        continuous: makeClientBucket("monthly"),
+        monthly: makeClientBucket("monthly"),
         contract: makeClientBucket("contract"),
     };
 
@@ -121,7 +121,7 @@ const buildDashboard = (clients, invoices, founders) => {
 
 
     const payments = {
-        continuous: makePaymentBucket("monthly"),
+        monthly: makePaymentBucket("monthly"),
         contract: makePaymentBucket("contract"),
     };
 
@@ -236,7 +236,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
 
     const [clientType, setClientType] =
-        useState("continuous");
+        useState("monthly");
 
 
     // --------------------------------------------------------------
@@ -351,7 +351,7 @@ export default function Dashboard() {
 
                 <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-16">
 
-                    <div className="w-full max-w-md rounded-3xl bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
 
                         <Loader2
                             className="animate-spin text-slate-700"
@@ -430,7 +430,7 @@ export default function Dashboard() {
                                 value={clientStats.total}
                                 valueClass="text-slate-900"
                                 sub={
-                                    clientType === "continuous"
+                                    clientType === "monthly"
                                         ? "Monthly clients"
                                         : "Contract clients"
                                 }
@@ -534,7 +534,7 @@ export default function Dashboard() {
 
                                 {dashboard.founders.length === 0 ? (
 
-                                    <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 text-sm text-slate-400 text-center">
+                                    <div className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 text-sm text-slate-400 text-center">
                                         No founders set up yet — add them on the Internals page.
                                     </div>
 
@@ -561,7 +561,7 @@ export default function Dashboard() {
                                 MONTHLY CLIENT CHART
                             ------------------------------------------------ */}
 
-                            <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+                            <div className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
 
                                 <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
 
@@ -677,20 +677,20 @@ function ClientTypeSwitch({
 
             <button
                 onClick={() =>
-                    onChange("continuous")
+                    onChange("monthly")
                 }
                 className={`
                     px-4 py-2
                     rounded-full
                     transition-all
                     duration-300
-                    ${value === "continuous"
+                    ${value === "monthly"
                         ? "bg-white text-black shadow"
                         : "text-white"
                     }
                 `}
             >
-                Continuous
+                monthly
             </button>
 
 
@@ -739,7 +739,7 @@ function FounderCard({
 
     return (
 
-        <div className="rounded-3xl bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+        <div className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
 
 
             <div className="flex items-center justify-between mb-4">
@@ -844,14 +844,14 @@ function MonthTooltip({
 
     return (
 
-        <div className="rounded-xl bg-white border border-gray-200 shadow-lg px-4 py-3 text-xs max-w-[220px]">
+        <div className="rounded-lg bg-white border border-gray-200 shadow-lg px-4 py-3 text-xs max-w-[220px]">
 
             <p className="font-semibold text-slate-800 mb-1">
                 {label}
             </p>
 
 
-            <p className="text-slate-500 mb-2">
+            <p className="text-black/90 mb-2">
 
                 {data.count} client
                 {data.count === 1 ? "" : "s"}

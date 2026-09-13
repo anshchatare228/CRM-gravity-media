@@ -23,7 +23,7 @@ export default function LowerPhoneNav() {
 
               ${isActive
                 ? "text-red-500"
-                : label === "Products" ? "text-white" : "text-slate-500 hover:bg-slate-100"
+                : label === "Products" ? "text-white" : "text-black/90 hover:bg-slate-100"
               }
 
               ${label === "Products"

@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
 import Internals from './pages/Internals';
+import ClientForm from './components/ClientForm';
+import ClientDetail from './components/ClientDetail';
 // import Internals from "./pages/Internals";
 
 export default function App() {
@@ -39,6 +41,33 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Internals />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/clients/new"
+          element={
+            <ProtectedRoute>
+              <ClientForm />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/clients/:id/edit"
+          element={
+            <ProtectedRoute>
+              <ClientForm />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/clients/:id"
+          element={
+            <ProtectedRoute>
+              <ClientDetail />
             </ProtectedRoute>
           }
         />
