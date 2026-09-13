@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, X, Search, Repeat, FileSignature, Calendar, Loader2 } from "lucide-react";
+import { Plus, Trash2, X, Search, Repeat, FileSignature, Calendar, Loader2 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import ClientDetailModal from "../components/ClientDetailModal";
 import { supabase } from "../lib/supabase";
 
-const EMPTY_FORM = { name: "", type: "monthly", payment: "", startDate: "", endDate: "", notes: "" };
+const EMPTY_FORM = { name: "", type: "monthly", payment: "", startDate: "", endDate: "", notes: "", founderId: "" };
 
 const currency = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
@@ -26,24 +26,34 @@ const STATUS_STYLE = {
 
 export default function Clients() {
     const [clients, setClients] = useState([]);
+    const [founders, setFounders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
     const [query, setQuery] = useState("");
-    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [addModalOpen, setAddModalOpen] = useState(false);
     const [detailClient, setDetailClient] = useState(null);
-    const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(EMPTY_FORM);
 
     const fetchClients = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from("clients").select("*").order("created_at", { ascending: false });
+        const [{ data, error }, { data: founderData }] = await Promise.all([
+            supabase.from("clients").select("*").order("created_at", { ascending: false }),
+            supabase.from("founders").select("*").order("name"),
+        ]);
         if (!error) setClients(data || []);
+        setFounders(founderData || []); // stays empty if founders table isn't set up yet
         setLoading(false);
     };
 
     useEffect(() => {
         fetchClients();
     }, []);
+
+    const founderMap = useMemo(() => {
+        const map = {};
+        founders.forEach((f) => (map[f.id] = f.name));
+        return map;
+    }, [founders]);
 
     const filtered = useMemo(() => {
         return clients.filter((c) => {
@@ -54,27 +64,12 @@ export default function Clients() {
     }, [clients, filter, query]);
 
     const openAddModal = () => {
-        setEditingId(null);
         setForm(EMPTY_FORM);
-        setEditModalOpen(true);
-    };
-
-    const openEditModal = (client) => {
-        setEditingId(client.id);
-        setForm({
-            name: client.name,
-            type: client.type,
-            payment: client.payment,
-            startDate: client.start_date,
-            endDate: client.end_date || "",
-            notes: client.notes || "",
-        });
-        setEditModalOpen(true);
+        setAddModalOpen(true);
     };
 
     const closeModal = () => {
-        setEditModalOpen(false);
-        setEditingId(null);
+        setAddModalOpen(false);
         setForm(EMPTY_FORM);
     };
 
@@ -87,14 +82,10 @@ export default function Clients() {
             start_date: form.startDate,
             end_date: form.endDate || null,
             notes: form.notes,
+            founder_id: form.founderId || null,
         };
-        if (editingId) {
-            const { error } = await supabase.from("clients").update(payload).eq("id", editingId);
-            if (error) return;
-        } else {
-            const { error } = await supabase.from("clients").insert(payload);
-            if (error) return;
-        }
+        const { error } = await supabase.from("clients").insert(payload);
+        if (error) return;
         await fetchClients();
         closeModal();
     };
@@ -202,7 +193,10 @@ export default function Clients() {
                                         className="grid grid-cols-2 md:grid-cols-[1.8fr_0.9fr_1fr_1fr_1fr_0.8fr_auto] gap-4 px-6 py-4 items-center border-b border-gray-50 last:border-0 hover:bg-slate-50/60 transition cursor-pointer"
                                     >
                                         <div className="col-span-2 md:col-span-1">
-                                            <p className="font-semibold text-slate-800 text-sm">{c.name}</p>
+                                            <p className="font-semibold text-slate-800 text-sm hover:underline">{c.name}</p>
+                                            {c.founder_id && founderMap[c.founder_id] && (
+                                                <p className="text-xs text-slate-400 mt-0.5">via {founderMap[c.founder_id]}</p>
+                                            )}
                                             {c.notes && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{c.notes}</p>}
                                         </div>
                                         <div>
@@ -234,12 +228,6 @@ export default function Clients() {
                                         </div>
                                         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
                                             <button
-                                                onClick={() => openEditModal(c)}
-                                                className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-                                            >
-                                                <Pencil size={14} />
-                                            </button>
-                                            <button
                                                 onClick={() => deleteClient(c.id)}
                                                 className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
                                             >
@@ -254,11 +242,11 @@ export default function Clients() {
                 </div>
             </div>
 
-            {editModalOpen && (
+            {addModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50" onClick={closeModal}>
-                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-3xl w-full max-w-2xl p-6 shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-bold text-slate-900">{editingId ? "Edit Client" : "Add Client"}</h2>
+                            <h2 className="text-lg font-bold text-slate-900">Add Client</h2>
                             <button onClick={closeModal} className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
                                 <X size={18} />
                             </button>
@@ -294,6 +282,22 @@ export default function Clients() {
                                     </button>
                                 </div>
                             </div>
+
+                            {founders.length > 0 && (
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Founder</label>
+                                    <select
+                                        value={form.founderId}
+                                        onChange={(e) => setForm((f) => ({ ...f, founderId: e.target.value }))}
+                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                    >
+                                        <option value="">Unassigned</option>
+                                        {founders.map((fd) => (
+                                            <option key={fd.id} value={fd.id}>{fd.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -370,7 +374,7 @@ export default function Clients() {
                                 disabled={!form.name.trim() || !form.payment || !form.startDate}
                                 className="flex-1 rounded-full bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                                {editingId ? "Save Changes" : "Add Client"}
+                                Add Client
                             </button>
                         </div>
                     </div>
@@ -380,6 +384,7 @@ export default function Clients() {
             {detailClient && (
                 <ClientDetailModal
                     client={detailClient}
+                    founders={founders}
                     onClose={() => setDetailClient(null)}
                     onClientUpdate={handleClientUpdate}
                 />
