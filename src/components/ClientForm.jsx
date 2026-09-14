@@ -135,7 +135,7 @@ export default function ClientForm() {
             <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
                 <Navbar />
                 <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-16">
-                    <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-full max-w-md rounded-none bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
                         <Loader2 className="animate-spin text-slate-700" size={36} />
                         <p className="text-sm font-medium text-slate-600">Loading client...</p>
                     </div>
@@ -186,7 +186,7 @@ export default function ClientForm() {
                     {/* ============================================
                         SECTION 1 — CONTACT & ENGAGEMENT
                     ============================================ */}
-                    <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6 mb-6">
+                    <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6 mb-6">
                         <div className="flex items-center gap-2 text-xs font-semibold tracking-[3px] text-black uppercase mb-5">
                             <User size={14} />
                             Contact &amp; Engagement
@@ -199,7 +199,7 @@ export default function ClientForm() {
                                     value={form.name}
                                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Bloom & Co Skincare"
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
 
@@ -211,7 +211,7 @@ export default function ClientForm() {
                                         value={form.email}
                                         onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                                         placeholder="contact@client.com"
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                                 <div>
@@ -221,7 +221,7 @@ export default function ClientForm() {
                                         value={form.phone}
                                         onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                                         placeholder="+91 98765 43210"
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                             </div>
@@ -231,14 +231,14 @@ export default function ClientForm() {
                                 <div className="mt-1.5 grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => setForm((f) => ({ ...f, type: "monthly" }))}
-                                        className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${form.type === "monthly" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-black/90"
+                                        className={`flex items-center justify-center gap-1.5 rounded-none border px-3 py-2.5 text-sm font-semibold transition ${form.type === "monthly" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-black/90"
                                             }`}
                                     >
                                         <Repeat size={14} /> Monthly
                                     </button>
                                     <button
                                         onClick={() => setForm((f) => ({ ...f, type: "contract" }))}
-                                        className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${form.type === "contract" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-black/90"
+                                        className={`flex items-center justify-center gap-1.5 rounded-none border px-3 py-2.5 text-sm font-semibold transition ${form.type === "contract" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-black/90"
                                             }`}
                                     >
                                         <FileSignature size={14} /> Contract
@@ -252,7 +252,7 @@ export default function ClientForm() {
                                     <select
                                         value={form.founderId}
                                         onChange={(e) => setForm((f) => ({ ...f, founderId: e.target.value }))}
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
                                     >
                                         <option value="">Unassigned</option>
                                         {founders.map((fd) => (
@@ -269,7 +269,7 @@ export default function ClientForm() {
                                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                                     placeholder="Scope, deliverables, anything worth remembering..."
                                     rows={3}
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 resize-none"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 resize-none"
                                 />
                             </div>
                         </div>
@@ -281,7 +281,7 @@ export default function ClientForm() {
                         their own "Commercials" tab on the client detail page.
                     ============================================ */}
                     {!isEdit && (
-                    <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6 mb-6">
+                    <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6 mb-6">
                         <div className="flex items-center gap-2 text-xs font-semibold tracking-[3px] text-black uppercase mb-5">
                             <Wallet size={14} />
                             Commercials &amp; Dates
@@ -298,7 +298,7 @@ export default function ClientForm() {
                                         value={form.payment}
                                         onChange={(e) => setForm((f) => ({ ...f, payment: e.target.value }))}
                                         placeholder="e.g. 45000"
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                                 <div>
@@ -308,7 +308,7 @@ export default function ClientForm() {
                                         value={form.paidAmount}
                                         onChange={(e) => setForm((f) => ({ ...f, paidAmount: e.target.value }))}
                                         placeholder="e.g. 20000"
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                             </div>
@@ -320,7 +320,7 @@ export default function ClientForm() {
                                         type="date"
                                         value={form.startDate}
                                         onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                                 <div>
@@ -331,7 +331,7 @@ export default function ClientForm() {
                                         type="date"
                                         value={form.endDate}
                                         onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                                        className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                             </div>
@@ -345,7 +345,7 @@ export default function ClientForm() {
                                                 key={m}
                                                 onClick={() => setDuration(m)}
                                                 disabled={!form.startDate}
-                                                className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-semibold text-black/90 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                className="flex-1 rounded-none border border-gray-200 py-2 text-xs font-semibold text-black/90 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 {m}mo
                                             </button>

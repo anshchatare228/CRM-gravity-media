@@ -111,7 +111,7 @@ export default function Clients() {
         <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
             <Navbar />
 
-            <div className="flex-1 min-w-0 flex flex-col pb-24">
+            <div className="flex-1 min-w-0 flex flex-col pb-24 pt-10">
                 <div className="px-5 md:px-5 pt-5">
                     <div className="max-w-6xl mx-auto">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

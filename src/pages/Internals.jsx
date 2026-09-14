@@ -175,7 +175,7 @@ export default function Internals() {
             <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
                 <Navbar />
                 <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-16">
-                    <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-full max-w-md rounded-none bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
                         <Loader2 className="animate-spin text-slate-700" size={36} />
                         <p className="text-sm font-medium text-slate-600">Loading internals...</p>
                     </div>
@@ -188,7 +188,7 @@ export default function Internals() {
         <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
             <Navbar />
 
-            <div className="flex-1 min-w-0 px-5 md:px-6 pt-24 md:pt-6 pb-12">
+            <div className="flex-1 min-w-0 px-5 md:px-6 pt-10 md:pt-6 pb-12">
                 <div className="max-w-5xl mx-auto">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                         <div>
@@ -206,7 +206,7 @@ export default function Internals() {
                     </div>
 
                     {tableMissing ? (
-                        <div className="rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-10 text-center">
+                        <div className="rounded-none bg-white border border-gray-200 shadow-sm px-6 py-10 text-center">
                             <p className="text-sm font-semibold text-slate-700">The founders table isn't set up yet.</p>
                             <p className="text-xs text-slate-400 mt-1">
                                 Run the founders table migration in Supabase, then refresh this page.
@@ -221,19 +221,19 @@ export default function Internals() {
                             )}
 
                             {founders.length === 0 ? (
-                                <div className="rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-10 text-center text-sm text-slate-400">
+                                <div className="rounded-none bg-white border border-gray-200 shadow-sm px-6 py-10 text-center text-sm text-slate-400">
                                     No founders yet — add one to get started.
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     {stats.map((f) => (
-                                        <div key={f.id} className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+                                        <div key={f.id} className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
                                             <div className="flex items-center justify-between mb-5">
                                                 {editingId === f.id ? (
                                                     <input
                                                         value={editForm.name}
                                                         onChange={(e) => setEditForm((s) => ({ ...s, name: e.target.value }))}
-                                                        className="font-bold text-slate-900 text-base rounded-lg border border-gray-200 px-2 py-1 outline-none focus:border-slate-400 w-40"
+                                                        className="font-bold text-slate-900 text-base rounded-none border border-gray-200 px-2 py-1 outline-none focus:border-slate-400 w-40"
                                                     />
                                                 ) : (
                                                     <div>
@@ -324,7 +324,7 @@ export default function Internals() {
                                             </button>
                                         </div>
 
-                                        <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
+                                        <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
                                             <div className="hidden md:grid grid-cols-[1.2fr_1fr_1fr_1.4fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-slate-400 uppercase border-b border-gray-100">
                                                 <span>Founder</span>
                                                 <span>Amount</span>
@@ -364,7 +364,7 @@ export default function Internals() {
                                     </div>
                                 )
                             ) : (
-                                <div className="mt-8 rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 text-center">
+                                <div className="mt-8 rounded-none bg-white border border-gray-200 shadow-sm px-6 py-8 text-center">
                                     <p className="text-sm font-semibold text-slate-700">The founder payouts table isn't set up yet.</p>
                                     <p className="text-xs text-slate-400 mt-1">
                                         Run the founder_payouts migration in Supabase, then refresh this page.
@@ -378,7 +378,7 @@ export default function Internals() {
 
             {addOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50" onClick={() => setAddOpen(false)}>
-                    <div className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-none w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-bold text-slate-900">Add Founder</h2>
                             <button onClick={() => setAddOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
@@ -392,7 +392,7 @@ export default function Internals() {
                                     value={addForm.name}
                                     onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Founder C"
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
@@ -404,7 +404,7 @@ export default function Internals() {
                                         value={addForm.commission}
                                         onChange={(e) => setAddForm((f) => ({ ...f, commission: e.target.value }))}
                                         placeholder="e.g. 10"
-                                        className="w-full rounded-lg border border-gray-200 pl-9 pr-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="w-full rounded-none border border-gray-200 pl-9 pr-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                             </div>
@@ -427,7 +427,7 @@ export default function Internals() {
 
             {payoutModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50" onClick={() => setPayoutModalOpen(false)}>
-                    <div className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-none w-full max-w-sm p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-5">
                             <h2 className="text-lg font-bold text-slate-900">Log Payout</h2>
                             <button onClick={() => setPayoutModalOpen(false)} className="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
@@ -440,7 +440,7 @@ export default function Internals() {
                                 <select
                                     value={payoutForm.founderId}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, founderId: e.target.value }))}
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
                                 >
                                     <option value="">Select founder</option>
                                     {founders.map((fd) => (
@@ -455,7 +455,7 @@ export default function Internals() {
                                     value={payoutForm.amount}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, amount: e.target.value }))}
                                     placeholder="e.g. 15000"
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
@@ -464,7 +464,7 @@ export default function Internals() {
                                     type="date"
                                     value={payoutForm.paidOn}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, paidOn: e.target.value }))}
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
@@ -473,7 +473,7 @@ export default function Internals() {
                                     value={payoutForm.notes}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, notes: e.target.value }))}
                                     placeholder="e.g. UPI transfer"
-                                    className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                         </div>

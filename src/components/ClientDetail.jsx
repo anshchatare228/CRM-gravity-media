@@ -206,7 +206,7 @@ export default function ClientDetail() {
             <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
                 <Navbar />
                 <div className="flex-1 min-w-0 flex items-center justify-center px-5 py-16">
-                    <div className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="w-full max-w-md rounded-none bg-white border border-gray-200 shadow-sm px-6 py-8 flex flex-col items-center justify-center gap-3 text-center">
                         <Loader2 className="animate-spin text-slate-700" size={36} />
                         <p className="text-sm font-medium text-slate-600">Loading client...</p>
                     </div>
@@ -244,7 +244,7 @@ export default function ClientDetail() {
                         <ArrowLeft size={15} /> Back to Clients
                     </button>
 
-                    <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6 mb-6">
+                    <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6 mb-6">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h1 className="text-2xl font-extrabold text-slate-900">{client.name}</h1>
@@ -288,7 +288,7 @@ export default function ClientDetail() {
                         ))}
                     </div>
 
-                    <div className="rounded-lg bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6">
+                    <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] p-6">
                         {tab === "commercials" ? (
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -301,7 +301,7 @@ export default function ClientDetail() {
                                             value={commercialsForm.payment}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, payment: e.target.value }))}
                                             placeholder="e.g. 45000"
-                                            className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <div>
@@ -311,7 +311,7 @@ export default function ClientDetail() {
                                             value={commercialsForm.paidAmount}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, paidAmount: e.target.value }))}
                                             placeholder="e.g. 20000"
-                                            className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>
@@ -323,7 +323,7 @@ export default function ClientDetail() {
                                             type="date"
                                             value={commercialsForm.startDate}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, startDate: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <div>
@@ -334,7 +334,7 @@ export default function ClientDetail() {
                                             type="date"
                                             value={commercialsForm.endDate}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, endDate: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>
@@ -348,7 +348,7 @@ export default function ClientDetail() {
                                                     key={m}
                                                     onClick={() => setCommercialsDuration(m)}
                                                     disabled={!commercialsForm.startDate}
-                                                    className="flex-1 rounded-lg border border-gray-200 py-2 text-xs font-semibold text-black/90 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                    className="flex-1 rounded-none border border-gray-200 py-2 text-xs font-semibold text-black/90 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
                                                 >
                                                     {m}mo
                                                 </button>
@@ -370,7 +370,7 @@ export default function ClientDetail() {
                                 <button
                                     onClick={saveCommercials}
                                     disabled={!commercialsForm.payment || !commercialsForm.startDate || savingCommercials}
-                                    className="w-full rounded-lg bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                    className="w-full rounded-none bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
                                 >
                                     {savingCommercials ? "Saving..." : commercialsSavedFlash ? "Saved ✓" : "Save Changes"}
                                 </button>
@@ -423,17 +423,17 @@ export default function ClientDetail() {
                                         value={milestoneForm.title}
                                         onChange={(e) => setMilestoneForm((f) => ({ ...f, title: e.target.value }))}
                                         placeholder="e.g. First draft delivered"
-                                        className="flex-1 rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
+                                        className="flex-1 rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
                                     />
                                     <input
                                         type="date"
                                         value={milestoneForm.dueDate}
                                         onChange={(e) => setMilestoneForm((f) => ({ ...f, dueDate: e.target.value }))}
-                                        className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
+                                        className="rounded-none border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
                                     />
                                     <button
                                         onClick={addMilestone}
-                                        className="rounded-lg bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition mt-4 shrink-0"
+                                        className="rounded-none bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition mt-4 shrink-0"
                                     >
                                         <Plus size={16} />
                                     </button>
@@ -442,7 +442,7 @@ export default function ClientDetail() {
                         ) : tab === "tasks" ? (
                             <div className="space-y-2">
                                 {client.type === "contract" && (
-                                    <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-2">
+                                    <p className="text-xs text-amber-600 bg-amber-50 rounded-none px-3 py-2 mb-2">
                                         When every item below is checked off, this client is automatically marked completed.
                                     </p>
                                 )}
@@ -450,7 +450,7 @@ export default function ClientDetail() {
                                     <p className="text-sm text-slate-400 text-center py-6">No work items yet — add the first one below.</p>
                                 )}
                                 {tasks.map((t) => (
-                                    <div key={t.id} className="flex items-center gap-3 rounded-lg border border-gray-100 px-3 py-2.5 group">
+                                    <div key={t.id} className="flex items-center gap-3 rounded-none border border-gray-100 px-3 py-2.5 group">
                                         <button onClick={() => toggleTask(t)} className="text-slate-400 hover:text-emerald-600 shrink-0">
                                             {t.done ? <CheckCircle2 size={18} className="text-emerald-600" /> : <Circle size={18} />}
                                         </button>
@@ -471,9 +471,9 @@ export default function ClientDetail() {
                                         onChange={(e) => setNewTask(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && addTask()}
                                         placeholder="e.g. Reel 3 — product launch"
-                                        className="flex-1 rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="flex-1 rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
-                                    <button onClick={addTask} className="rounded-lg bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition">
+                                    <button onClick={addTask} className="rounded-none bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition">
                                         <Plus size={16} />
                                     </button>
                                 </div>
@@ -484,7 +484,7 @@ export default function ClientDetail() {
                                     <p className="text-sm text-slate-400 text-center py-6">No invoices yet — create one below.</p>
                                 )}
                                 {invoices.map((inv) => (
-                                    <div key={inv.id} className="rounded-lg border border-gray-100 px-3.5 py-3 flex items-center justify-between gap-3">
+                                    <div key={inv.id} className="rounded-none border border-gray-100 px-3.5 py-3 flex items-center justify-between gap-3">
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 truncate">{inv.description || "Invoice"}</p>
                                             <p className="text-xs text-slate-400">
@@ -500,12 +500,12 @@ export default function ClientDetail() {
                                         </button>
                                     </div>
                                 ))}
-                                <div className="rounded-lg border border-gray-100 p-3.5 space-y-2 mt-3">
+                                <div className="rounded-none border border-gray-100 p-3.5 space-y-2 mt-3">
                                     <input
                                         value={invoiceForm.description}
                                         onChange={(e) => setInvoiceForm((f) => ({ ...f, description: e.target.value }))}
                                         placeholder="Description (e.g. August retainer)"
-                                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                        className="w-full rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                     />
                                     <div className="flex gap-2">
                                         <input
@@ -513,18 +513,18 @@ export default function ClientDetail() {
                                             value={invoiceForm.amount}
                                             onChange={(e) => setInvoiceForm((f) => ({ ...f, amount: e.target.value }))}
                                             placeholder="Amount (₹)"
-                                            className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            className="flex-1 rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                         />
                                         <input
                                             type="date"
                                             value={invoiceForm.issueDate}
                                             onChange={(e) => setInvoiceForm((f) => ({ ...f, issueDate: e.target.value }))}
-                                            className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <button
                                         onClick={addInvoice}
-                                        className="w-full rounded-lg bg-slate-900 text-white py-2 text-sm font-semibold hover:bg-slate-800 transition"
+                                        className="w-full rounded-none bg-slate-900 text-white py-2 text-sm font-semibold hover:bg-slate-800 transition"
                                     >
                                         Create Invoice
                                     </button>
