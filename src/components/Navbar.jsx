@@ -47,7 +47,7 @@ export default function Navbar() {
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-xl text-black hover:bg-gray-550/10 active:scale-95 transition-all duration-200 focus:outline-none"
+          className="p-2 rounded-none text-black hover:bg-gray-550/10 active:scale-95 transition-all duration-200 focus:outline-none"
         >
           {isOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -118,7 +118,7 @@ export default function Navbar() {
         <div className="pt-3 border-t border-gray-150/60 mt-auto">
           <button
             onClick={handleLogout}
-            className="group flex w-full items-center gap-3.5 rounded-xl border border-gray-200 px-4 py-3.5 text-[0.95rem] font-medium text-gray-600 transition-all duration-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 active:scale-[0.98] cursor-pointer"
+            className="group flex w-full items-center gap-3.5 rounded-none border border-gray-200 px-4 py-3.5 text-[0.95rem] font-medium text-gray-600 transition-all duration-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 active:scale-[0.98] cursor-pointer"
           >
             <LogOut size={19} className="text-gray-400 group-hover:text-rose-500 transition-colors duration-200" />
             <span>Logout</span>

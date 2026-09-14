@@ -197,7 +197,7 @@ function Register({ onAuthSuccess }) {
 
                 <button
                     onClick={() => navigate("/login")}
-                    className="text-[1.1rem] md:text-[1.3rem] text-shadow-black transition md:hover:text-white cursor-pointer duration-300 px-4 py-2 md:bg-black border md:hover:bg-red-600 rounded-xl bg-black text-white md:text-white"
+                    className="text-[1.1rem] md:text-[1.3rem] text-shadow-black transition md:hover:text-white cursor-pointer duration-300 px-4 py-2 md:bg-black border md:hover:bg-red-600 rounded-none bg-black text-white md:text-white"
                 >
                     Log In
                 </button>
@@ -230,7 +230,7 @@ function Register({ onAuthSuccess }) {
             </div>
 
             {/* CARD */}
-            <div className="mx-auto mt-5 max-w-[320px] md:max-w-[600px] rounded-3xl bg-white p-8 drop-shadow-2xl border-[2px] border-red-600/60">
+            <div className="mx-auto mt-5 max-w-[320px] md:max-w-[600px] rounded-none bg-white p-8 drop-shadow-2xl border-[2px] border-red-600/60">
                 <span className="text-xs font-semibold tracking-wider text-red-600">
                     STEP {currentStep + 1} OF 3
                 </span>
@@ -407,7 +407,7 @@ function Register({ onAuthSuccess }) {
 
                 {/* ERROR */}
                 {error && (
-                    <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    <div className="mt-6 rounded-none border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                         {error}
                     </div>
                 )}

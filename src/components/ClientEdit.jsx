@@ -1,4 +1,3 @@
-// src/components/ClientDetailModal.jsx
 import React, { useEffect, useState } from "react";
 import { X, Plus, Trash2, CheckCircle2, Circle, FileText, Receipt, Milestone, Pencil, Repeat, FileSignature } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -15,7 +14,7 @@ const buildForm = (client) => ({
     founderId: client.founder_id || "",
 });
 
-export default function ClientDetailModal({ client, founders = [], onClose, onClientUpdate }) {
+export default function ClientEdit({ client, founders = [], onClose, onClientUpdate }) {
     const [tab, setTab] = useState("timeline");
     const [tasks, setTasks] = useState([]);
     const [milestones, setMilestones] = useState([]);
@@ -190,7 +189,7 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
     return (
         <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center px-4 z-50" onClick={onClose}>
             <div
-                className="bg-white rounded-3xl w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col overflow-hidden"
+                className="bg-white rounded-none w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
@@ -211,7 +210,7 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                         <button
                             key={t.key}
                             onClick={() => setTab(t.key)}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${tab === t.key ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${tab === t.key ? "bg-slate-900 text-white" : "text-black/90 hover:bg-slate-100"
                                 }`}
                         >
                             {t.icon} {t.label}
@@ -223,28 +222,28 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                     {tab === "details" ? (
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Client Name</label>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Client Name</label>
                                 <input
                                     value={form.name}
                                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Bloom & Co Skincare"
-                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
 
                             <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Client Type</label>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Client Type</label>
                                 <div className="mt-1.5 grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => setForm((f) => ({ ...f, type: "monthly" }))}
-                                        className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${form.type === "monthly" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-slate-500"
+                                        className={`flex items-center justify-center gap-1.5 rounded-none border px-3 py-2.5 text-sm font-semibold transition ${form.type === "monthly" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-black/90"
                                             }`}
                                     >
                                         <Repeat size={14} /> Monthly
                                     </button>
                                     <button
                                         onClick={() => setForm((f) => ({ ...f, type: "contract" }))}
-                                        className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${form.type === "contract" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-slate-500"
+                                        className={`flex items-center justify-center gap-1.5 rounded-none border px-3 py-2.5 text-sm font-semibold transition ${form.type === "contract" ? "border-slate-900 bg-slate-900 text-white" : "border-gray-200 text-black/90"
                                             }`}
                                     >
                                         <FileSignature size={14} /> Contract
@@ -254,11 +253,11 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
 
                             {founders.length > 0 && (
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Founder</label>
+                                    <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Founder</label>
                                     <select
                                         value={form.founderId}
                                         onChange={(e) => setForm((f) => ({ ...f, founderId: e.target.value }))}
-                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
                                     >
                                         <option value="">Unassigned</option>
                                         {founders.map((fd) => (
@@ -269,7 +268,7 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                             )}
 
                             <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">
                                     {form.type === "monthly" ? "Monthly Fee (₹)" : "Total Contract Value (₹)"}
                                 </label>
                                 <input
@@ -277,43 +276,43 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                     value={form.payment}
                                     onChange={(e) => setForm((f) => ({ ...f, payment: e.target.value }))}
                                     placeholder="e.g. 45000"
-                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Start Date</label>
+                                    <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Start Date</label>
                                     <input
                                         type="date"
                                         value={form.startDate}
                                         onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                    <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">
                                         End Date {form.type === "monthly" && <span className="normal-case font-normal">(optional)</span>}
                                     </label>
                                     <input
                                         type="date"
                                         value={form.endDate}
                                         onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                                        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                        className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                             </div>
 
                             {form.type === "contract" && (
                                 <div>
-                                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Quick Duration</label>
+                                    <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Quick Duration</label>
                                     <div className="mt-1.5 flex gap-2">
                                         {[1, 3, 6, 12].map((m) => (
                                             <button
                                                 key={m}
                                                 onClick={() => setDuration(m)}
                                                 disabled={!form.startDate}
-                                                className="flex-1 rounded-xl border border-gray-200 py-2 text-xs font-semibold text-slate-500 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                                                className="flex-1 rounded-none border border-gray-200 py-2 text-xs font-semibold text-black/90 hover:border-slate-400 disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 {m}mo
                                             </button>
@@ -323,20 +322,20 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                             )}
 
                             <div>
-                                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Notes</label>
+                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Notes</label>
                                 <textarea
                                     value={form.notes}
                                     onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                                     placeholder="Scope, deliverables, anything worth remembering..."
                                     rows={3}
-                                    className="mt-1.5 w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 resize-none"
+                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 resize-none"
                                 />
                             </div>
 
                             <button
                                 onClick={saveDetails}
                                 disabled={!form.name.trim() || !form.payment || !form.startDate || savingDetails}
-                                className="w-full rounded-xl bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                className="w-full rounded-none bg-slate-900 text-white py-2.5 text-sm font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
                             >
                                 {savingDetails ? "Saving..." : savedFlash ? "Saved ✓" : "Save Changes"}
                             </button>
@@ -389,17 +388,17 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                     value={milestoneForm.title}
                                     onChange={(e) => setMilestoneForm((f) => ({ ...f, title: e.target.value }))}
                                     placeholder="e.g. First draft delivered"
-                                    className="flex-1 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
+                                    className="flex-1 rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
                                 />
                                 <input
                                     type="date"
                                     value={milestoneForm.dueDate}
                                     onChange={(e) => setMilestoneForm((f) => ({ ...f, dueDate: e.target.value }))}
-                                    className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
+                                    className="rounded-none border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400 mt-4"
                                 />
                                 <button
                                     onClick={addMilestone}
-                                    className="rounded-xl bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition mt-4 shrink-0"
+                                    className="rounded-none bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition mt-4 shrink-0"
                                 >
                                     <Plus size={16} />
                                 </button>
@@ -408,7 +407,7 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                     ) : tab === "tasks" ? (
                         <div className="space-y-2">
                             {client.type === "contract" && (
-                                <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2 mb-2">
+                                <p className="text-xs text-amber-600 bg-amber-50 rounded-none px-3 py-2 mb-2">
                                     When every item below is checked off, this client is automatically marked expired.
                                 </p>
                             )}
@@ -416,7 +415,7 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                 <p className="text-sm text-slate-400 text-center py-6">No work items yet — add the first one below.</p>
                             )}
                             {tasks.map((t) => (
-                                <div key={t.id} className="flex items-center gap-3 rounded-xl border border-gray-100 px-3 py-2.5 group">
+                                <div key={t.id} className="flex items-center gap-3 rounded-none border border-gray-100 px-3 py-2.5 group">
                                     <button onClick={() => toggleTask(t)} className="text-slate-400 hover:text-emerald-600 shrink-0">
                                         {t.done ? <CheckCircle2 size={18} className="text-emerald-600" /> : <Circle size={18} />}
                                     </button>
@@ -437,9 +436,9 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                     onChange={(e) => setNewTask(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && addTask()}
                                     placeholder="e.g. Reel 3 — product launch"
-                                    className="flex-1 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="flex-1 rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
-                                <button onClick={addTask} className="rounded-xl bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition">
+                                <button onClick={addTask} className="rounded-none bg-slate-900 text-white px-3.5 hover:bg-slate-800 transition">
                                     <Plus size={16} />
                                 </button>
                             </div>
@@ -450,7 +449,7 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                 <p className="text-sm text-slate-400 text-center py-6">No invoices yet — create one below.</p>
                             )}
                             {invoices.map((inv) => (
-                                <div key={inv.id} className="rounded-xl border border-gray-100 px-3.5 py-3 flex items-center justify-between gap-3">
+                                <div key={inv.id} className="rounded-none border border-gray-100 px-3.5 py-3 flex items-center justify-between gap-3">
                                     <div className="min-w-0">
                                         <p className="text-sm font-semibold text-slate-800 truncate">{inv.description || "Invoice"}</p>
                                         <p className="text-xs text-slate-400">
@@ -466,12 +465,12 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                     </button>
                                 </div>
                             ))}
-                            <div className="rounded-xl border border-gray-100 p-3.5 space-y-2 mt-3">
+                            <div className="rounded-none border border-gray-100 p-3.5 space-y-2 mt-3">
                                 <input
                                     value={invoiceForm.description}
                                     onChange={(e) => setInvoiceForm((f) => ({ ...f, description: e.target.value }))}
                                     placeholder="Description (e.g. August retainer)"
-                                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                    className="w-full rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                 />
                                 <div className="flex gap-2">
                                     <input
@@ -479,18 +478,18 @@ export default function ClientDetailModal({ client, founders = [], onClose, onCl
                                         value={invoiceForm.amount}
                                         onChange={(e) => setInvoiceForm((f) => ({ ...f, amount: e.target.value }))}
                                         placeholder="Amount (₹)"
-                                        className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                        className="flex-1 rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                     />
                                     <input
                                         type="date"
                                         value={invoiceForm.issueDate}
                                         onChange={(e) => setInvoiceForm((f) => ({ ...f, issueDate: e.target.value }))}
-                                        className="rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                        className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                     />
                                 </div>
                                 <button
                                     onClick={addInvoice}
-                                    className="w-full rounded-lg bg-slate-900 text-white py-2 text-sm font-semibold hover:bg-slate-800 transition"
+                                    className="w-full rounded-none bg-slate-900 text-white py-2 text-sm font-semibold hover:bg-slate-800 transition"
                                 >
                                     Create Invoice
                                 </button>
