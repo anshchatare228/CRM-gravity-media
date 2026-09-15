@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import { Loader2, Users, Pencil, Check, X, Plus, IndianRupee, Trash2, Wallet } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import ConfirmModal from "../components/ConfirmModal";
 
 const currency = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
@@ -11,6 +12,7 @@ const formatDate = (d) =>
 export default function Internals() {
     const [founders, setFounders] = useState([]);
     const [clients, setClients] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [payouts, setPayouts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tableMissing, setTableMissing] = useState(false);
@@ -23,6 +25,7 @@ export default function Internals() {
     const [addForm, setAddForm] = useState({ name: "", commission: "" });
 
     const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+    const [deletePayoutId, setDeletePayoutId] = useState(null);
     const [payoutForm, setPayoutForm] = useState({
         founderId: "",
         amount: "",
@@ -32,10 +35,11 @@ export default function Internals() {
 
     const fetchAll = async () => {
         setLoading(true);
-        const [foundersRes, clientsRes, payoutsRes] = await Promise.all([
+        const [foundersRes, clientsRes, payoutsRes, invoicesRes] = await Promise.all([
             supabase.from("founders").select("*").order("name"),
             supabase.from("clients").select("*"),
             supabase.from("founder_payouts").select("*").order("paid_on", { ascending: false }),
+            supabase.from("invoices").select("client_id, amount, status"),
         ]);
 
         if (foundersRes.error) {
@@ -56,6 +60,7 @@ export default function Internals() {
         }
 
         setClients(clientsRes.data || []);
+        setInvoices(invoicesRes.error ? [] : (invoicesRes.data || []));
         setLoading(false);
     };
 
@@ -69,8 +74,20 @@ export default function Internals() {
         return founders.map((f) => {
             const theirClients = clients.filter((c) => c.founder_id === f.id);
 
-            const generated = theirClients.reduce((s, c) => s + Number(c.payment || 0), 0);
-            const collected = theirClients.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
+            const generated = theirClients.reduce((s, c) => {
+                if (c.type !== "monthly") return s + Number(c.payment || 0);
+                const clientInvoices = invoices.filter((invoice) => invoice.client_id === c.id);
+                return s + (clientInvoices.length
+                    ? clientInvoices.reduce((total, invoice) => total + Number(invoice.amount || 0), 0)
+                    : Number(c.payment || 0));
+            }, 0);
+            const collected = theirClients.reduce((s, c) => {
+                if (c.type !== "monthly") return s + Number(c.paid_amount || 0);
+                const clientInvoices = invoices.filter((invoice) => invoice.client_id === c.id);
+                return s + (clientInvoices.length
+                    ? clientInvoices.filter((invoice) => invoice.status === "paid").reduce((total, invoice) => total + Number(invoice.amount || 0), 0)
+                    : Number(c.paid_amount || 0));
+            }, 0);
             const pending = Math.max(0, generated - collected);
 
             const earnedCut = Math.round((collected * f.commission) / 100);
@@ -90,7 +107,7 @@ export default function Internals() {
                 cutPending,
             };
         });
-    }, [founders, clients, payouts]);
+    }, [founders, clients, payouts, invoices]);
 
     const founderMap = useMemo(() => {
         const map = {};
@@ -352,7 +369,7 @@ export default function Internals() {
                                                     <div className="text-sm text-slate-500 truncate">{p.notes || "—"}</div>
                                                     <div className="flex justify-end">
                                                         <button
-                                                            onClick={() => deletePayout(p.id)}
+                                                            onClick={() => setDeletePayoutId(p.id)}
                                                             className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
                                                         >
                                                             <Trash2 size={14} />
@@ -387,16 +404,16 @@ export default function Internals() {
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Name</label>
+                                <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Name</label>
                                 <input
                                     value={addForm.name}
                                     onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Founder C"
-                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Commission (%)</label>
+                                <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Commission (%)</label>
                                 <div className="relative mt-1.5">
                                     <IndianRupee size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                                     <input
@@ -436,11 +453,11 @@ export default function Internals() {
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Founder</label>
+                                <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Founder</label>
                                 <select
                                     value={payoutForm.founderId}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, founderId: e.target.value }))}
-                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                    className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
                                 >
                                     <option value="">Select founder</option>
                                     {founders.map((fd) => (
@@ -449,31 +466,31 @@ export default function Internals() {
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Amount (₹)</label>
+                                <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Amount (₹)</label>
                                 <input
                                     type="number"
                                     value={payoutForm.amount}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, amount: e.target.value }))}
                                     placeholder="e.g. 15000"
-                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Date</label>
+                                <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Date</label>
                                 <input
                                     type="date"
                                     value={payoutForm.paidOn}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, paidOn: e.target.value }))}
-                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Notes (optional)</label>
+                                <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Notes (optional)</label>
                                 <input
                                     value={payoutForm.notes}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, notes: e.target.value }))}
                                     placeholder="e.g. UPI transfer"
-                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                         </div>
@@ -492,6 +509,17 @@ export default function Internals() {
                     </div>
                 </div>
             )}
+            <ConfirmModal
+                open={Boolean(deletePayoutId)}
+                title="Delete payout?"
+                message="Delete this payout record? This cannot be undone."
+                onConfirm={async () => {
+                    const payoutId = deletePayoutId;
+                    setDeletePayoutId(null);
+                    await deletePayout(payoutId);
+                }}
+                onCancel={() => setDeletePayoutId(null)}
+            />
         </div>
     );
 }

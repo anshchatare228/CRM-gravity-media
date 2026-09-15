@@ -16,6 +16,8 @@ import {
     Wallet,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import ConfirmModal from "./ConfirmModal";
+import InvoicePreview, { downloadInvoicePdf, getInvoiceItems, getInvoiceTotal } from "./InvoicePreview";
 import { supabase } from "../lib/supabase";
 
 const currency = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -33,6 +35,16 @@ const buildCommercialsForm = (client) => ({
     startDate: client?.start_date || "",
     endDate: client?.end_date || "",
     completed: client?.completed || false,
+});
+
+const emptyInvoiceItem = () => ({ description: "", rate: "", quantity: "1" });
+
+const buildInvoiceForm = () => ({
+    items: [emptyInvoiceItem()],
+    issueDate: new Date().toISOString().slice(0, 10),
+    paymentMethod: "",
+    upiId: "",
+    paidOn: "",
 });
 
 export default function ClientDetail() {
@@ -53,7 +65,9 @@ export default function ClientDetail() {
 
     const [newTask, setNewTask] = useState("");
     const [milestoneForm, setMilestoneForm] = useState({ title: "", dueDate: "" });
-    const [invoiceForm, setInvoiceForm] = useState({ description: "", amount: "", issueDate: new Date().toISOString().slice(0, 10) });
+    const [invoiceForm, setInvoiceForm] = useState(buildInvoiceForm());
+    const [pendingDelete, setPendingDelete] = useState(null);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
 
     const loadAll = async () => {
         setLoading(true);
@@ -137,7 +151,7 @@ export default function ClientDetail() {
         syncCompletion(next);
     };
 
-    const deleteTask = async (task) => {
+    const confirmDeleteTask = async (task) => {
         const { error } = await supabase.from("client_tasks").delete().eq("id", task.id);
         if (error) return;
         const next = tasks.filter((t) => t.id !== task.id);
@@ -168,37 +182,97 @@ export default function ClientDetail() {
         setMilestones((prev) => prev.map((x) => (x.id === m.id ? { ...x, done: !x.done } : x)));
     };
 
-    const deleteMilestone = async (m) => {
+    const confirmDeleteMilestone = async (m) => {
         const { error } = await supabase.from("client_milestones").delete().eq("id", m.id);
         if (error) return;
         setMilestones((prev) => prev.filter((x) => x.id !== m.id));
     };
 
+    const updateInvoiceItem = (index, field, value) => {
+        setInvoiceForm((f) => ({
+            ...f,
+            items: f.items.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+        }));
+    };
+
+    const addInvoiceItemRow = () => {
+        setInvoiceForm((f) => ({ ...f, items: [...f.items, emptyInvoiceItem()] }));
+    };
+
+    const removeInvoiceItemRow = (index) => {
+        setInvoiceForm((f) => ({
+            ...f,
+            items: f.items.length > 1 ? f.items.filter((_, i) => i !== index) : f.items,
+        }));
+    };
+
     const addInvoice = async () => {
-        if (!invoiceForm.amount) return;
+        const items = invoiceForm.items
+            .map((item) => {
+                const quantity = Number(item.quantity || 1);
+                const rate = Number(
+                    item.rate || (client.type === "monthly" && invoiceForm.items.length === 1 ? client.payment : 0)
+                );
+                const amount = rate * quantity;
+                return {
+                    description: item.description || (client.type === "monthly" ? "Monthly retainer" : "Services"),
+                    rate,
+                    quantity,
+                    amount,
+                };
+            })
+            .filter((item) => item.amount > 0);
+
+        if (items.length === 0) return;
+
+        const total = items.reduce((sum, item) => sum + item.amount, 0);
+
         const { data, error } = await supabase
             .from("invoices")
             .insert({
                 client_id: client.id,
-                description: invoiceForm.description,
-                amount: Number(invoiceForm.amount),
+                description: items.map((i) => i.description).join(", "),
+                invoice_number: `INV-${Date.now().toString().slice(-6)}`,
+                items, // jsonb column — array of {description, rate, quantity, amount}
+                amount: total,
+                rate: items[0].rate,
+                quantity: items[0].quantity,
                 issue_date: invoiceForm.issueDate,
+                payment_method: invoiceForm.paymentMethod || null,
+                upi_id: invoiceForm.upiId || null,
+                paid_on: invoiceForm.paidOn || null,
             })
             .select()
             .single();
-        if (error) return;
+
+        if (error) {
+            console.error("Failed to create invoice:", error);
+            return;
+        }
+
         setInvoices((prev) => [data, ...prev]);
-        setInvoiceForm({ description: "", amount: "", issueDate: new Date().toISOString().slice(0, 10) });
+        setInvoiceForm(buildInvoiceForm());
     };
 
     const toggleInvoicePaid = async (invoice) => {
         const nextStatus = invoice.status === "paid" ? "pending" : "paid";
         const { error } = await supabase
             .from("invoices")
-            .update({ status: nextStatus, paid_at: nextStatus === "paid" ? new Date().toISOString() : null })
+            .update({ status: nextStatus, paid_at: nextStatus === "paid" ? new Date().toISOString() : null, paid_on: nextStatus === "paid" ? new Date().toISOString().slice(0, 10) : null })
             .eq("id", invoice.id);
         if (error) return;
-        setInvoices((prev) => prev.map((i) => (i.id === invoice.id ? { ...i, status: nextStatus } : i)));
+        setInvoices((prev) => prev.map((i) => (i.id === invoice.id ? {
+            ...i,
+            status: nextStatus,
+            paid_on: nextStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
+        } : i)));
+    };
+
+    const confirmDeleteInvoice = async (invoice) => {
+        const { error } = await supabase.from("invoices").delete().eq("id", invoice.id);
+        if (error) return;
+        setInvoices((prev) => prev.filter((item) => item.id !== invoice.id));
+        if (selectedInvoice?.id === invoice.id) setSelectedInvoice(null);
     };
 
     if (loading) {
@@ -293,7 +367,7 @@ export default function ClientDetail() {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">
+                                        <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">
                                             {client.type === "monthly" ? "Monthly Fee (₹)" : "Total Contract Value (₹)"}
                                         </label>
                                         <input
@@ -301,47 +375,47 @@ export default function ClientDetail() {
                                             value={commercialsForm.payment}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, payment: e.target.value }))}
                                             placeholder="e.g. 45000"
-                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Paid Amount (₹)</label>
+                                        <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Paid Amount (₹)</label>
                                         <input
                                             type="number"
                                             value={commercialsForm.paidAmount}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, paidAmount: e.target.value }))}
                                             placeholder="e.g. 20000"
-                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Start Date</label>
+                                        <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Start Date</label>
                                         <input
                                             type="date"
                                             value={commercialsForm.startDate}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, startDate: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">
+                                        <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">
                                             End Date {client.type === "monthly" && <span className="normal-case font-normal">(optional)</span>}
                                         </label>
                                         <input
                                             type="date"
                                             value={commercialsForm.endDate}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, endDate: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border border-black/30 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>
 
                                 {client.type === "contract" && (
                                     <div>
-                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Quick Duration</label>
+                                        <label className="text-xs font-semibold font-sans text-black/90 uppercase tracking-wide">Quick Duration</label>
                                         <div className="mt-1.5 flex gap-2">
                                             {[1, 3, 6, 12].map((m) => (
                                                 <button
@@ -408,7 +482,7 @@ export default function ClientDetail() {
                                                         )}
                                                     </div>
                                                     <button
-                                                        onClick={() => deleteMilestone(m)}
+                                                        onClick={() => setPendingDelete({ type: "milestone", item: m })}
                                                         className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-600 transition shrink-0"
                                                     >
                                                         <Trash2 size={13} />
@@ -458,7 +532,7 @@ export default function ClientDetail() {
                                             {t.title}
                                         </span>
                                         <button
-                                            onClick={() => deleteTask(t)}
+                                            onClick={() => setPendingDelete({ type: "task", item: t })}
                                             className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-600 transition shrink-0"
                                         >
                                             <Trash2 size={14} />
@@ -483,42 +557,112 @@ export default function ClientDetail() {
                                 {invoices.length === 0 && (
                                     <p className="text-sm text-slate-400 text-center py-6">No invoices yet — create one below.</p>
                                 )}
-                                {invoices.map((inv) => (
-                                    <div key={inv.id} className="rounded-none border border-gray-100 px-3.5 py-3 flex items-center justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-slate-800 truncate">{inv.description || "Invoice"}</p>
-                                            <p className="text-xs text-slate-400">
-                                                {new Date(inv.issue_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })} · {currency(inv.amount)}
-                                            </p>
+                                {invoices.map((inv) => {
+                                    const total = getInvoiceTotal(inv);
+                                    const items = getInvoiceItems(inv);
+                                    return (
+                                        <div key={inv.id} className="rounded-none border border-gray-100 px-3.5 py-3 flex items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold text-slate-800 truncate">
+                                                    {items.length > 1 ? `${items[0].description} +${items.length - 1} more` : items[0].description}
+                                                </p>
+                                                <p className="text-xs text-slate-400">
+                                                    {new Date(inv.issue_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })} · {currency(total)}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button onClick={() => setSelectedInvoice(inv)} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">View</button>
+                                                <button onClick={() => downloadInvoicePdf(client, inv)} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Download</button>
+                                                <button
+                                                    onClick={() => toggleInvoicePaid(inv)}
+                                                    className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${inv.status === "paid" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                                                        }`}
+                                                >
+                                                    {inv.status === "paid" ? "Paid" : "Pending"}
+                                                </button>
+                                                <button
+                                                    onClick={() => setPendingDelete({ type: "invoice", item: inv })}
+                                                    className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
-                                        <button
-                                            onClick={() => toggleInvoicePaid(inv)}
-                                            className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition ${inv.status === "paid" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                                                }`}
-                                        >
-                                            {inv.status === "paid" ? "Paid" : "Pending"}
-                                        </button>
-                                    </div>
-                                ))}
-                                <div className="rounded-none border border-gray-100 p-3.5 space-y-2 mt-3">
-                                    <input
-                                        value={invoiceForm.description}
-                                        onChange={(e) => setInvoiceForm((f) => ({ ...f, description: e.target.value }))}
-                                        placeholder="Description (e.g. August retainer)"
-                                        className="w-full rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
-                                    />
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="number"
-                                            value={invoiceForm.amount}
-                                            onChange={(e) => setInvoiceForm((f) => ({ ...f, amount: e.target.value }))}
-                                            placeholder="Amount (₹)"
-                                            className="flex-1 rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
-                                        />
+                                    );
+                                })}
+
+                                <div className="rounded-none border border-gray-100 p-3.5 space-y-3 mt-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Items</p>
+                                    {invoiceForm.items.map((item, index) => (
+                                        <div key={index} className="grid grid-cols-[1fr_90px_60px_28px] gap-2 items-center">
+                                            <input
+                                                value={item.description}
+                                                onChange={(e) => updateInvoiceItem(index, "description", e.target.value)}
+                                                placeholder="e.g. Website Development, SEO"
+                                                className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={item.rate}
+                                                onChange={(e) => updateInvoiceItem(index, "rate", e.target.value)}
+                                                placeholder="Rate (₹)"
+                                                className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            />
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={item.quantity}
+                                                onChange={(e) => updateInvoiceItem(index, "quantity", e.target.value)}
+                                                placeholder="Qty"
+                                                className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            />
+                                            <button
+                                                onClick={() => removeInvoiceItemRow(index)}
+                                                disabled={invoiceForm.items.length === 1}
+                                                className="text-slate-300 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                aria-label="Remove item"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addInvoiceItemRow}
+                                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                                    >
+                                        <Plus size={13} /> Add item
+                                    </button>
+
+                                    <div className="grid grid-cols-2 gap-2 pt-2">
                                         <input
                                             type="date"
                                             value={invoiceForm.issueDate}
                                             onChange={(e) => setInvoiceForm((f) => ({ ...f, issueDate: e.target.value }))}
+                                            className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                        />
+                                        <select
+                                            value={invoiceForm.paymentMethod}
+                                            onChange={(e) => setInvoiceForm((f) => ({ ...f, paymentMethod: e.target.value }))}
+                                            className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400 bg-white"
+                                        >
+                                            <option value="">Paid using (optional)</option>
+                                            <option value="upi">UPI</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Card</option>
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input
+                                            value={invoiceForm.upiId}
+                                            onChange={(e) => setInvoiceForm((f) => ({ ...f, upiId: e.target.value }))}
+                                            placeholder="UPI ID (optional)"
+                                            className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                        />
+                                        <input
+                                            type="date"
+                                            value={invoiceForm.paidOn}
+                                            onChange={(e) => setInvoiceForm((f) => ({ ...f, paidOn: e.target.value }))}
+                                            aria-label="Paid date"
                                             className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
@@ -534,6 +678,20 @@ export default function ClientDetail() {
                     </div>
                 </div>
             </div>
+            <ConfirmModal
+                open={Boolean(pendingDelete)}
+                title={`Delete ${pendingDelete?.type || "item"}?`}
+                message={`Delete this ${pendingDelete?.type || "item"}? This cannot be undone.`}
+                onConfirm={async () => {
+                    const deletion = pendingDelete;
+                    setPendingDelete(null);
+                    if (deletion?.type === "task") await confirmDeleteTask(deletion.item);
+                    if (deletion?.type === "milestone") await confirmDeleteMilestone(deletion.item);
+                    if (deletion?.type === "invoice") await confirmDeleteInvoice(deletion.item);
+                }}
+                onCancel={() => setPendingDelete(null)}
+            />
+            {selectedInvoice && <InvoicePreview client={client} invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />}
         </div>
     );
 }
