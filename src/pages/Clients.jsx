@@ -108,7 +108,7 @@ export default function Clients() {
     }
 
     return (
-        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
+        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-stone-500/10">
             <Navbar />
 
             <div className="flex-1 min-w-0 flex flex-col pb-24 pt-10">
@@ -130,7 +130,7 @@ export default function Clients() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-3 mb-5">
-                            <div className="inline-flex rounded-full bg-white border border-gray-200 p-1 shadow-sm self-start">
+                            <div className="inline-flex rounded-md bg-white border border-gray-200 p-1 shadow-sm self-start">
                                 {[
                                     { key: "all", label: "All" },
                                     { key: "monthly", label: "Monthly", icon: <Repeat size={13} /> },
@@ -139,7 +139,7 @@ export default function Clients() {
                                     <button
                                         key={t.key}
                                         onClick={() => setFilter(t.key)}
-                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${filter === t.key ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"
+                                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition ${filter === t.key ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"
                                             }`}
                                     >
                                         {t.icon} {t.label}
@@ -152,13 +152,13 @@ export default function Clients() {
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     placeholder="Search client, contact, or package"
-                                    className="w-full rounded-full border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-slate-400"
+                                    className="w-full h-full rounded-md border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                         </div>
 
                         <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
-                            <div className="hidden md:grid grid-cols-[1.8fr_1fr_0.9fr_1.3fr_1.3fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-slate-400 uppercase border-b border-gray-100">
+                            <div className="hidden bg-neutral-200 md:grid grid-cols-[1.8fr_1fr_0.9fr_1.3fr_1.3fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-black pl-10 uppercase border-b border-gray-100">
                                 <span>Client</span>
                                 <span>Package</span>
                                 <span>Status</span>

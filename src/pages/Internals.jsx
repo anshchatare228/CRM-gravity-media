@@ -185,7 +185,7 @@ export default function Internals() {
     }
 
     return (
-        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-slate-50">
+        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-stone-500/10">
             <Navbar />
 
             <div className="flex-1 min-w-0 px-5 md:px-6 pt-10 md:pt-6 pb-12">
@@ -283,12 +283,12 @@ export default function Internals() {
 
                                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 mb-4">
                                                 <div>
-                                                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Taken)</p>
-                                                    <p className="text-sm font-bold text-emerald-600">{currency(f.cutPaid)}</p>
-                                                </div>
-                                                <div>
                                                     <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Owed)</p>
                                                     <p className="text-sm font-bold text-amber-500">{currency(f.cutPending)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Their Cut (Taken)</p>
+                                                    <p className="text-sm font-bold text-emerald-600">{currency(f.cutPaid)}</p>
                                                 </div>
                                             </div>
 
@@ -387,16 +387,16 @@ export default function Internals() {
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Name</label>
+                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Name</label>
                                 <input
                                     value={addForm.name}
                                     onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Founder C"
-                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Commission (%)</label>
+                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Commission (%)</label>
                                 <div className="relative mt-1.5">
                                     <IndianRupee size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                                     <input
@@ -436,11 +436,11 @@ export default function Internals() {
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Founder</label>
+                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Founder</label>
                                 <select
                                     value={payoutForm.founderId}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, founderId: e.target.value }))}
-                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
+                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400 bg-white"
                                 >
                                     <option value="">Select founder</option>
                                     {founders.map((fd) => (
@@ -449,31 +449,31 @@ export default function Internals() {
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Amount (₹)</label>
+                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Amount (₹)</label>
                                 <input
                                     type="number"
                                     value={payoutForm.amount}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, amount: e.target.value }))}
                                     placeholder="e.g. 15000"
-                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Date</label>
+                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Date</label>
                                 <input
                                     type="date"
                                     value={payoutForm.paidOn}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, paidOn: e.target.value }))}
-                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Notes (optional)</label>
+                                <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Notes (optional)</label>
                                 <input
                                     value={payoutForm.notes}
                                     onChange={(e) => setPayoutForm((f) => ({ ...f, notes: e.target.value }))}
                                     placeholder="e.g. UPI transfer"
-                                    className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                    className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                 />
                             </div>
                         </div>
