@@ -326,12 +326,12 @@ export default function Dashboard() {
                             <div className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 w-full">
                                 <div className="flex items-center justify-between mb-1 pt-5">
                                     <p className="text-xs font-semibold tracking-[3px] text-slate-400 uppercase">
-                                        Task Pulse
+                                        Task Monitor
                                     </p>
                                     <TrendingUp size={18} className="text-emerald-700" />
                                 </div>
 
-                                <h3 className="text-lg font-bold text-slate-900 mb-6">Work in motion</h3>
+                                <h3 className="text-lg font-bold text-slate-900 mb-6">Progress so far</h3>
 
                                 <div className="mb-5">
                                     <div className="flex items-center justify-between text-sm mb-2">
