@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import brandLogo from "../assets/logo.png";
 import { supabase } from "../lib/supabase";
@@ -14,6 +14,18 @@ function Login({ onAuthSuccess }) {
         email: "",
         password: "",
     });
+
+    useEffect(() => {
+        let mounted = true;
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (mounted && session) navigate("/dashboard", { replace: true });
+        });
+
+        return () => {
+            mounted = false;
+        };
+    }, [navigate]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;

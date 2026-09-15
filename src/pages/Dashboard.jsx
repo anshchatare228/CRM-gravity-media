@@ -24,7 +24,7 @@ import {
 // BUILD DASHBOARD FROM REAL SUPABASE DATA
 // ------------------------------------------------------------------
 
-const buildDashboard = (clients, founders, payouts) => {
+const buildDashboard = (clients, founders, payouts, tasks, invoices) => {
     // --------------------------------------------------------------
     // CLIENTS
     // --------------------------------------------------------------
@@ -42,11 +42,24 @@ const buildDashboard = (clients, founders, payouts) => {
     };
 
     // --------------------------------------------------------------
-    // PAYMENTS — driven directly by each client's payment / paid_amount
-    // (not the invoices table, which can drift out of sync)
+    // PAYMENTS — monthly clients are invoice-driven; contracts retain their
+    // original one-time payment tracking.
     // --------------------------------------------------------------
     const makePaymentBucket = (type) => {
         const typeClients = clients.filter((client) => client.type === type);
+        if (type === "monthly") {
+            const monthlyClientIds = new Set(typeClients.map((client) => client.id));
+            const monthlyInvoices = invoices.filter((invoice) => monthlyClientIds.has(invoice.client_id));
+            const clientIdsWithInvoices = new Set(monthlyInvoices.map((invoice) => invoice.client_id));
+            const clientsWithoutInvoices = typeClients.filter((client) => !clientIdsWithInvoices.has(client.id));
+            const generated = monthlyInvoices.reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0)
+                + clientsWithoutInvoices.reduce((sum, client) => sum + Number(client.payment || 0), 0);
+            const collected = monthlyInvoices
+                .filter((invoice) => invoice.status === "paid")
+                .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0)
+                + clientsWithoutInvoices.reduce((sum, client) => sum + Number(client.paid_amount || 0), 0);
+            return { generated, collected, pending: Math.max(0, generated - collected) };
+        }
         const generated = typeClients.reduce((sum, client) => sum + Number(client.payment || 0), 0);
         const collected = typeClients.reduce((sum, client) => sum + Number(client.paid_amount || 0), 0);
         const pending = Math.max(0, generated - collected);
@@ -66,7 +79,13 @@ const buildDashboard = (clients, founders, payouts) => {
     // --------------------------------------------------------------
     const founderStats = founders.map((founder) => {
         const theirClients = clients.filter((c) => c.founder_id === founder.id);
-        const collected = theirClients.reduce((sum, c) => sum + Number(c.paid_amount || 0), 0);
+        const collected = theirClients.reduce((sum, c) => {
+            if (c.type !== "monthly") return sum + Number(c.paid_amount || 0);
+            const clientInvoices = invoices.filter((invoice) => invoice.client_id === c.id);
+            return sum + (clientInvoices.length
+                ? clientInvoices.filter((invoice) => invoice.status === "paid").reduce((total, invoice) => total + Number(invoice.amount || 0), 0)
+                : Number(c.paid_amount || 0));
+        }, 0);
         const earnedCut = Math.round((collected * founder.commission) / 100);
         const paidOut = payouts
             .filter((p) => p.founder_id === founder.id)
@@ -106,6 +125,11 @@ const buildDashboard = (clients, founders, payouts) => {
         };
     });
 
+    const taskStats = {
+        done: tasks.filter((task) => task.done).length,
+        total: tasks.length,
+    };
+
     // --------------------------------------------------------------
     // FINAL DASHBOARD OBJECT
     // --------------------------------------------------------------
@@ -114,6 +138,7 @@ const buildDashboard = (clients, founders, payouts) => {
         payments,
         founders: founderStats,
         monthlyClients,
+        taskStats,
     };
 };
 
@@ -134,10 +159,12 @@ export default function Dashboard() {
             try {
                 setLoading(true);
 
-                const [clientsRes, foundersRes, payoutsRes] = await Promise.all([
+                const [clientsRes, foundersRes, payoutsRes, tasksRes, invoicesRes] = await Promise.all([
                     supabase.from("clients").select("*").order("created_at", { ascending: true }),
                     supabase.from("founders").select("*").order("name"),
                     supabase.from("founder_payouts").select("*"),
+                    supabase.from("client_tasks").select("done"),
+                    supabase.from("invoices").select("client_id, amount, status"),
                 ]);
 
                 if (clientsRes.error) {
@@ -155,7 +182,17 @@ export default function Dashboard() {
                     console.warn("Founder payouts table not set up yet:", payoutsRes.error.message);
                 }
 
-                const dashboardData = buildDashboard(clientsRes.data || [], founders, payouts);
+                const tasks = tasksRes.error ? [] : (tasksRes.data || []);
+                if (tasksRes.error) {
+                    console.warn("Client tasks table not set up yet:", tasksRes.error.message);
+                }
+
+                const invoices = invoicesRes.error ? [] : (invoicesRes.data || []);
+                if (invoicesRes.error) {
+                    console.warn("Invoices table not set up yet:", invoicesRes.error.message);
+                }
+
+                const dashboardData = buildDashboard(clientsRes.data || [], founders, payouts, tasks, invoices);
                 setDashboard(dashboardData);
             } catch (error) {
                 console.error("Dashboard error:", error);
@@ -199,6 +236,13 @@ export default function Dashboard() {
     const clientStats = dashboard.clients[clientType];
     const paymentStats = dashboard.payments[clientType];
 
+    // --------------------------------------------------------------
+    // COMBINED REVENUE (monthly + contract) — used by the Task Pulse card
+    // --------------------------------------------------------------
+    const totalGenerated = dashboard.payments.monthly.generated + dashboard.payments.contract.generated;
+    const totalCollected = dashboard.payments.monthly.collected + dashboard.payments.contract.collected;
+    const revenuePct = totalGenerated ? Math.round((totalCollected / totalGenerated) * 100) : 0;
+
     // ==================================================================
     // MAIN UI
     // ==================================================================
@@ -209,13 +253,13 @@ export default function Dashboard() {
             <div className="flex-1 min-w-0 w-full">
                 <div className="flex-1 min-w-0 px-5 md:px-6 pt-24 md:pt-6 pb-12 flex flex-col gap-8">
 
-                    <div className="flex">
-                        <div>
+                    <div className="flex flex-col lg:flex-row gap-6">
+                        <div className="flex-1 min-w-0 space-y-8">
                             {/* ==================================================
                                 SECTION 1 — CLIENTS
                             ================================================== */}
                             <section>
-                                <div className="flex items-center justify-between mb-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                                     <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase">
                                         <Users size={14} />
                                         Clients
@@ -276,32 +320,31 @@ export default function Dashboard() {
                                     />
                                 </div>
                             </section>
-
                         </div>
 
-                        <div>
-                            {/* <div className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 w-full lg:w-80">
-                                <div className="flex items-center justify-between mb-1">
+                        <div className="w-full lg:w-80 shrink-0 mt-14">
+                            <div className="rounded-lg bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 w-full">
+                                <div className="flex items-center justify-between mb-1 pt-5">
                                     <p className="text-xs font-semibold tracking-[3px] text-slate-400 uppercase">
                                         Task Pulse
                                     </p>
-                                    <Video size={18} className="text-emerald-700" />
+                                    <TrendingUp size={18} className="text-emerald-700" />
                                 </div>
 
                                 <h3 className="text-lg font-bold text-slate-900 mb-6">Work in motion</h3>
 
                                 <div className="mb-5">
                                     <div className="flex items-center justify-between text-sm mb-2">
-                                        <span className="text-slate-900">Video tasks</span>
+                                        <span className="text-slate-900">Completed tasks</span>
                                         <span className="text-slate-400">
-                                            {taskStats.video.done} / {taskStats.video.total}
+                                            {dashboard.taskStats.done} / {dashboard.taskStats.total}
                                         </span>
                                     </div>
                                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                         <div
                                             className="h-full bg-teal-800 rounded-full"
                                             style={{
-                                                width: `${(taskStats.video.done / taskStats.video.total) * 100}%`,
+                                                width: `${dashboard.taskStats.total ? (dashboard.taskStats.done / dashboard.taskStats.total) * 100 : 0}%`,
                                             }}
                                         />
                                     </div>
@@ -309,41 +352,36 @@ export default function Dashboard() {
 
                                 <div className="mb-6">
                                     <div className="flex items-center justify-between text-sm mb-2">
-                                        <span className="text-slate-900">Post tasks</span>
+                                        <span className="text-slate-900">Revenue collected</span>
                                         <span className="text-slate-400">
-                                            {taskStats.post.done} / {taskStats.post.total}
+                                            {currency(totalCollected)} / {currency(totalGenerated)}
                                         </span>
                                     </div>
                                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-lime-400 rounded-full"
-                                            style={{
-                                                width: `${(taskStats.post.done / taskStats.post.total) * 100}%`,
-                                            }}
+                                            className="h-full bg-emerald-600 rounded-full"
+                                            style={{ width: `${revenuePct}%` }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="border-t border-gray-100 pt-4 flex items-end justify-between">
+                                <div className="border-t border-gray-100 pt-4 flex items-end justify-between gap-3 pb-5">
                                     <div>
                                         <p className="text-xs text-slate-400 mb-1">Combined tasks</p>
                                         <p className="text-2xl font-bold text-slate-900">
-                                            {taskStats.video.done + taskStats.post.done}
-                                            <span className="text-base font-medium text-slate-400"> / {taskStats.video.total + taskStats.post.total}</span>
+                                            {dashboard.taskStats.done}
+                                            <span className="text-base font-medium text-slate-400"> / {dashboard.taskStats.total}</span>
                                         </p>
                                     </div>
-                                    <p className="text-xs text-gray-400">
-                                        {Math.round(
-                                            ((taskStats.video.done + taskStats.post.done) /
-                                                (taskStats.video.total + taskStats.post.total)) * 100
-                                        )}% complete
+                                    <p className="text-xs text-gray-400 text-right">
+                                        {dashboard.taskStats.total ? Math.round((dashboard.taskStats.done / dashboard.taskStats.total) * 100) : 0}% tasks done
+                                        <br />
+                                        {revenuePct}% revenue in
                                     </p>
                                 </div>
-                            </div> */}
+                            </div>
                         </div>
                     </div>
-
-
 
                     {/* ==================================================
                         SECTION 3 — FOUNDER SPLIT + MONTHLY CHART
@@ -367,13 +405,13 @@ export default function Dashboard() {
                                 )}
                             </div>
 
-                            <div className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
+                            <div className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 min-w-0">
                                 <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
                                     <TrendingUp size={14} />
                                     Clients Added by Month
                                 </div>
 
-                                <div className="w-full h-64 ml-[-1.5rem]">
+                                <div className="w-full h-64 ml-[-1rem] sm:ml-[-1.5rem]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart
                                             data={dashboard.monthlyClients}
@@ -444,29 +482,29 @@ function FounderCard({ founder, currency }) {
 
     return (
         <div className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <p className="font-bold text-slate-900">{founder.name}</p>
+            <div className="flex items-center justify-between mb-4 gap-3">
+                <div className="min-w-0">
+                    <p className="font-bold text-slate-900 truncate">{founder.name}</p>
                     <p className="text-xs text-gray-400">
                         Commission share · {founder.clientCount} client{founder.clientCount === 1 ? "" : "s"}
                     </p>
                 </div>
 
-                <span className="rounded-full bg-amber-50 text-amber-600 text-xs font-semibold px-3 py-1">
+                <span className="rounded-full bg-amber-50 text-amber-600 text-xs font-semibold px-3 py-1 shrink-0">
                     {founder.commission}%
                 </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
+                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Not Taken</p>
+                    <p className="text-lg font-bold text-amber-500">{currency(founder.pending)}</p>
+                </div>
+                <div>
                     <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Taken</p>
                     <p className="text-lg font-bold text-emerald-600">{currency(founder.paid)}</p>
                 </div>
 
-                <div>
-                    <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Owed</p>
-                    <p className="text-lg font-bold text-amber-500">{currency(founder.pending)}</p>
-                </div>
             </div>
 
             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
