@@ -293,7 +293,7 @@ export default function ClientDetail() {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">
+                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">
                                             {client.type === "monthly" ? "Monthly Fee (₹)" : "Total Contract Value (₹)"}
                                         </label>
                                         <input
@@ -301,47 +301,47 @@ export default function ClientDetail() {
                                             value={commercialsForm.payment}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, payment: e.target.value }))}
                                             placeholder="e.g. 45000"
-                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Paid Amount (₹)</label>
+                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Paid Amount (₹)</label>
                                         <input
                                             type="number"
                                             value={commercialsForm.paidAmount}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, paidAmount: e.target.value }))}
                                             placeholder="e.g. 20000"
-                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Start Date</label>
+                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Start Date</label>
                                         <input
                                             type="date"
                                             value={commercialsForm.startDate}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, startDate: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">
+                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">
                                             End Date {client.type === "monthly" && <span className="normal-case font-normal">(optional)</span>}
                                         </label>
                                         <input
                                             type="date"
                                             value={commercialsForm.endDate}
                                             onChange={(e) => setCommercialsForm((f) => ({ ...f, endDate: e.target.value }))}
-                                            className="mt-1.5 w-full rounded-none border border-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
+                                            className="mt-1.5 w-full rounded-none border-b border-b-gray-200 px-3.5 py-2.5 text-sm outline-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>
 
                                 {client.type === "contract" && (
                                     <div>
-                                        <label className="text-xs font-semibold text-black/90 uppercase tracking-wide">Quick Duration</label>
+                                        <label className="text-xs font-semibold font-mono text-black/90 uppercase tracking-wide">Quick Duration</label>
                                         <div className="mt-1.5 flex gap-2">
                                             {[1, 3, 6, 12].map((m) => (
                                                 <button

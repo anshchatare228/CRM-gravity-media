@@ -203,77 +203,147 @@ export default function Dashboard() {
     // MAIN UI
     // ==================================================================
     return (
-        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-stone-100">
+        <div className="min-h-screen w-full flex flex-col md:flex-row items-stretch bg-stone-500/10">
             <Navbar />
 
             <div className="flex-1 min-w-0 w-full">
                 <div className="flex-1 min-w-0 px-5 md:px-6 pt-24 md:pt-6 pb-12 flex flex-col gap-8">
 
-                    {/* ==================================================
-                        SECTION 1 — CLIENTS
-                    ================================================== */}
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase">
-                                <Users size={14} />
-                                Clients
-                            </div>
+                    <div className="flex">
+                        <div>
+                            {/* ==================================================
+                                SECTION 1 — CLIENTS
+                            ================================================== */}
+                            <section>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase">
+                                        <Users size={14} />
+                                        Clients
+                                    </div>
 
-                            <ClientTypeSwitch value={clientType} onChange={setClientType} />
+                                    <ClientTypeSwitch value={clientType} onChange={setClientType} />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                    <StatCard
+                                        label="Total Clients"
+                                        value={clientStats.total}
+                                        valueClass="text-slate-900"
+                                        sub={clientType === "monthly" ? "Monthly clients" : "Contract clients"}
+                                    />
+                                    <StatCard
+                                        label="Active Clients"
+                                        value={clientStats.active}
+                                        valueClass="text-emerald-600"
+                                        sub="Currently active"
+                                    />
+                                    <StatCard
+                                        label="Inactive Clients"
+                                        value={clientStats.inactive}
+                                        valueClass="text-red-600"
+                                        sub="Not currently active"
+                                    />
+                                </div>
+                            </section>
+
+                            {/* ==================================================
+                                SECTION 2 — PAYMENTS
+                            ================================================== */}
+                            <section>
+                                <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
+                                    <IndianRupee size={14} />
+                                    Payments
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                    <StatCard
+                                        label="Total Revenue Generated"
+                                        value={currency(paymentStats.generated)}
+                                        valueClass="text-slate-900"
+                                        sub="Billed to clients"
+                                    />
+                                    <StatCard
+                                        label="Revenue Collected"
+                                        value={currency(paymentStats.collected)}
+                                        valueClass="text-emerald-600"
+                                        sub="Received so far"
+                                    />
+                                    <StatCard
+                                        label="Pending Revenue"
+                                        value={currency(paymentStats.pending)}
+                                        valueClass="text-amber-500"
+                                        sub="Yet to be collected"
+                                    />
+                                </div>
+                            </section>
+
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                            <StatCard
-                                label="Total Clients"
-                                value={clientStats.total}
-                                valueClass="text-slate-900"
-                                sub={clientType === "monthly" ? "Monthly clients" : "Contract clients"}
-                            />
-                            <StatCard
-                                label="Active Clients"
-                                value={clientStats.active}
-                                valueClass="text-emerald-600"
-                                sub="Currently active"
-                            />
-                            <StatCard
-                                label="Inactive Clients"
-                                value={clientStats.inactive}
-                                valueClass="text-red-600"
-                                sub="Not currently active"
-                            />
-                        </div>
-                    </section>
+                        <div>
+                            {/* <div className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 w-full lg:w-80">
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-xs font-semibold tracking-[3px] text-slate-400 uppercase">
+                                        Task Pulse
+                                    </p>
+                                    <Video size={18} className="text-emerald-700" />
+                                </div>
 
-                    {/* ==================================================
-                        SECTION 2 — PAYMENTS
-                    ================================================== */}
-                    <section>
-                        <div className="flex items-center gap-2 text-s font-semibold tracking-[3px] text-black font-sans uppercase mb-4">
-                            <IndianRupee size={14} />
-                            Payments
-                        </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-6">Work in motion</h3>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                            <StatCard
-                                label="Total Revenue Generated"
-                                value={currency(paymentStats.generated)}
-                                valueClass="text-slate-900"
-                                sub="Billed to clients"
-                            />
-                            <StatCard
-                                label="Revenue Collected"
-                                value={currency(paymentStats.collected)}
-                                valueClass="text-emerald-600"
-                                sub="Received so far"
-                            />
-                            <StatCard
-                                label="Pending Revenue"
-                                value={currency(paymentStats.pending)}
-                                valueClass="text-amber-500"
-                                sub="Yet to be collected"
-                            />
+                                <div className="mb-5">
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                        <span className="text-slate-900">Video tasks</span>
+                                        <span className="text-slate-400">
+                                            {taskStats.video.done} / {taskStats.video.total}
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-teal-800 rounded-full"
+                                            style={{
+                                                width: `${(taskStats.video.done / taskStats.video.total) * 100}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                        <span className="text-slate-900">Post tasks</span>
+                                        <span className="text-slate-400">
+                                            {taskStats.post.done} / {taskStats.post.total}
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-lime-400 rounded-full"
+                                            style={{
+                                                width: `${(taskStats.post.done / taskStats.post.total) * 100}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-gray-100 pt-4 flex items-end justify-between">
+                                    <div>
+                                        <p className="text-xs text-slate-400 mb-1">Combined tasks</p>
+                                        <p className="text-2xl font-bold text-slate-900">
+                                            {taskStats.video.done + taskStats.post.done}
+                                            <span className="text-base font-medium text-slate-400"> / {taskStats.video.total + taskStats.post.total}</span>
+                                        </p>
+                                    </div>
+                                    <p className="text-xs text-gray-400">
+                                        {Math.round(
+                                            ((taskStats.video.done + taskStats.post.done) /
+                                                (taskStats.video.total + taskStats.post.total)) * 100
+                                        )}% complete
+                                    </p>
+                                </div>
+                            </div> */}
                         </div>
-                    </section>
+                    </div>
+
+
 
                     {/* ==================================================
                         SECTION 3 — FOUNDER SPLIT + MONTHLY CHART
@@ -347,18 +417,16 @@ function ClientTypeSwitch({ value, onChange }) {
         <div className="relative inline-flex bg-black rounded-full p-1 text-xs font-semibold">
             <button
                 onClick={() => onChange("monthly")}
-                className={`px-4 py-2 rounded-full transition-all duration-300 ${
-                    value === "monthly" ? "bg-white text-black shadow" : "text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-all duration-300 ${value === "monthly" ? "bg-white text-black shadow" : "text-white"
+                    }`}
             >
                 Monthly
             </button>
 
             <button
                 onClick={() => onChange("contract")}
-                className={`px-4 py-2 rounded-full transition-all duration-300 ${
-                    value === "contract" ? "bg-white text-black shadow" : "text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-all duration-300 ${value === "contract" ? "bg-white text-black shadow" : "text-white"
+                    }`}
             >
                 Contract
             </button>
