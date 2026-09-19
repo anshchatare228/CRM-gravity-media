@@ -68,29 +68,20 @@ export default function Internals() {
         fetchAll();
     }, []);
 
-    // Revenue is driven by each client's own payment / paid_amount fields —
-    // not the invoices table, which can drift out of sync.
+    // Monthly revenue is based on each client's recurring payment record,
+    // not on invoice rows. Monthly retainer clients are re-added manually.
     const stats = useMemo(() => {
         return founders.map((f) => {
             const theirClients = clients.filter((c) => c.founder_id === f.id);
 
-            const generated = theirClients.reduce((s, c) => {
-                if (c.type !== "monthly") return s + Number(c.payment || 0);
-                const clientInvoices = invoices.filter((invoice) => invoice.client_id === c.id);
-                return s + (clientInvoices.length
-                    ? clientInvoices.reduce((total, invoice) => total + Number(invoice.amount || 0), 0)
-                    : Number(c.payment || 0));
-            }, 0);
-            const collected = theirClients.reduce((s, c) => {
-                if (c.type !== "monthly") return s + Number(c.paid_amount || 0);
-                const clientInvoices = invoices.filter((invoice) => invoice.client_id === c.id);
-                return s + (clientInvoices.length
-                    ? clientInvoices.filter((invoice) => invoice.status === "paid").reduce((total, invoice) => total + Number(invoice.amount || 0), 0)
-                    : Number(c.paid_amount || 0));
-            }, 0);
+            const generated = theirClients.reduce((s, c) => s + Number(c.payment || 0), 0);
+            const collected = theirClients.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
             const pending = Math.max(0, generated - collected);
 
-            const earnedCut = Math.round((collected * f.commission) / 100);
+            const isGajendra = String(f.name || "").trim().toLowerCase() === "gajendra";
+            const earnedCut = isGajendra
+                ? collected
+                : Math.round((collected * Number(f.commission || 0)) / 100);
             const paidOut = payouts
                 .filter((p) => p.founder_id === f.id)
                 .reduce((s, p) => s + Number(p.amount || 0), 0);

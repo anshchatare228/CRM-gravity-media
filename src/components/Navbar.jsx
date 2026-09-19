@@ -43,7 +43,7 @@ export default function Navbar() {
       {/* Mobile top bar — was: conflicting z-0/z-30 + stray border-r/border-black clashing with border-b-2 border-red-400 */}
       <div className="flex items-center justify-between bg-white/10 backdrop-blur-lg px-6 py-4 fixed top-0 left-0 right-0 z-30 transition-all border-b border-gray-200 md:hidden">
         <div className="flex items-center gap-3">
-          <img src={brandLogo} alt="Krazystore" className="h-9 w-auto object-contain" />
+          <img src={brandLogo} alt="Logo" className="h-9 w-auto object-contain" />
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -68,7 +68,7 @@ export default function Navbar() {
         `}>
         {/* was h-18 (not in default Tailwind scale, so it silently did nothing) */}
         <div className="hidden md:flex flex-col items-center mb-8 px-2">
-          <img src={brandLogo} alt="Krazystore" className="h-20 mt-[-0.5rem] w-auto object-contain mb-2" />
+          <img src={brandLogo} alt="Logo" className="h-20 mt-[-0.5rem] w-auto object-contain mb-2" />
         </div>
 
         {/* flex-1 so the nav list takes remaining space and Logout can be pinned with mt-auto below,
