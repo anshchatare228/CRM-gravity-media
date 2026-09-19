@@ -47,19 +47,6 @@ const buildDashboard = (clients, founders, payouts, tasks, invoices) => {
     // --------------------------------------------------------------
     const makePaymentBucket = (type) => {
         const typeClients = clients.filter((client) => client.type === type);
-        if (type === "monthly") {
-            const monthlyClientIds = new Set(typeClients.map((client) => client.id));
-            const monthlyInvoices = invoices.filter((invoice) => monthlyClientIds.has(invoice.client_id));
-            const clientIdsWithInvoices = new Set(monthlyInvoices.map((invoice) => invoice.client_id));
-            const clientsWithoutInvoices = typeClients.filter((client) => !clientIdsWithInvoices.has(client.id));
-            const generated = monthlyInvoices.reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0)
-                + clientsWithoutInvoices.reduce((sum, client) => sum + Number(client.payment || 0), 0);
-            const collected = monthlyInvoices
-                .filter((invoice) => invoice.status === "paid")
-                .reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0)
-                + clientsWithoutInvoices.reduce((sum, client) => sum + Number(client.paid_amount || 0), 0);
-            return { generated, collected, pending: Math.max(0, generated - collected) };
-        }
         const generated = typeClients.reduce((sum, client) => sum + Number(client.payment || 0), 0);
         const collected = typeClients.reduce((sum, client) => sum + Number(client.paid_amount || 0), 0);
         const pending = Math.max(0, generated - collected);
@@ -79,14 +66,8 @@ const buildDashboard = (clients, founders, payouts, tasks, invoices) => {
     // --------------------------------------------------------------
     const founderStats = founders.map((founder) => {
         const theirClients = clients.filter((c) => c.founder_id === founder.id);
-        const collected = theirClients.reduce((sum, c) => {
-            if (c.type !== "monthly") return sum + Number(c.paid_amount || 0);
-            const clientInvoices = invoices.filter((invoice) => invoice.client_id === c.id);
-            return sum + (clientInvoices.length
-                ? clientInvoices.filter((invoice) => invoice.status === "paid").reduce((total, invoice) => total + Number(invoice.amount || 0), 0)
-                : Number(c.paid_amount || 0));
-        }, 0);
-        const earnedCut = Math.round((collected * founder.commission) / 100);
+        const collected = theirClients.reduce((sum, c) => sum + Number(c.paid_amount || 0), 0);
+        const earnedCut = Math.round((collected * Number(founder.commission || 0)) / 100);
         const paidOut = payouts
             .filter((p) => p.founder_id === founder.id)
             .reduce((sum, p) => sum + Number(p.amount || 0), 0);
@@ -98,6 +79,7 @@ const buildDashboard = (clients, founders, payouts, tasks, invoices) => {
             clientCount: theirClients.length,
             paid: paidOut,
             pending: pendingCut,
+            collected,
         };
     });
 

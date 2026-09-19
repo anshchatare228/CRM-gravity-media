@@ -46,6 +46,7 @@ export default function Clients() {
     const [taskStats, setTaskStats] = useState({}); // { [clientId]: { done, total } }
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
+    const [founderFilter, setFounderFilter] = useState("all");
     const [query, setQuery] = useState("");
 
     const fetchClients = async () => {
@@ -84,14 +85,15 @@ export default function Clients() {
     const filtered = useMemo(() => {
         return clients.filter((c) => {
             const matchesType = filter === "all" || c.type === filter;
+            const matchesFounder = founderFilter === "all" || c.founder_id === founderFilter;
             const q = query.toLowerCase();
             const matchesQuery =
                 c.name.toLowerCase().includes(q) ||
                 (c.email || "").toLowerCase().includes(q) ||
                 (c.phone || "").toLowerCase().includes(q);
-            return matchesType && matchesQuery;
+            return matchesType && matchesFounder && matchesQuery;
         });
-    }, [clients, filter, query]);
+    }, [clients, filter, founderFilter, query]);
 
     if (loading) {
         return (
@@ -146,6 +148,20 @@ export default function Clients() {
                                     </button>
                                 ))}
                             </div>
+
+                            {founders.length > 0 && (
+                                <select
+                                    value={founderFilter}
+                                    onChange={(e) => setFounderFilter(e.target.value)}
+                                    className="rounded-md border  border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 outline-none focus:border-slate-400 self-start"
+                                >
+                                    <option value="all">All Founders</option>
+                                    {founders.map((f) => (
+                                        <option key={f.id} value={f.id}>{f.name}</option>
+                                    ))}
+                                </select>
+                            )}
+
                             <div className="relative flex-1 max-w-xs">
                                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
@@ -158,7 +174,7 @@ export default function Clients() {
                         </div>
 
                         <div className="rounded-none bg-white border border-gray-200 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] overflow-hidden">
-                            <div className="hidden bg-neutral-200 md:grid grid-cols-[1.8fr_1fr_0.9fr_1.3fr_1.3fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-black pl-10 uppercase border-b border-gray-100">
+                            <div className="hidden bg-neutral-200 md:grid grid-cols-[1.8fr_1fr_0.9fr_1.2fr_1.2fr_auto] gap-4 px-6 py-3 text-xs font-semibold tracking-wide text-black pl-10 uppercase border-b border-gray-100">
                                 <span>Client</span>
                                 <span>Package</span>
                                 <span>Status</span>
@@ -192,10 +208,14 @@ export default function Clients() {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-slate-800 text-sm truncate">{c.name}</p>
-                                                <p className="text-xs text-slate-400 mt-0.5 truncate">
-                                                    {c.email || "—"}
-                                                    {c.phone ? ` · ${c.phone}` : ""}
-                                                </p>
+                                                <div className="flex flex-col">
+                                                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                                        {c.email || "—"}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                                                        {c.phone ? ` ${c.phone}` : ""}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
