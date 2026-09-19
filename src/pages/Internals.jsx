@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { Loader2, Users, Pencil, Check, X, Plus, IndianRupee, Trash2, Wallet } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -10,6 +11,8 @@ const formatDate = (d) =>
     new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
 
 export default function Internals() {
+    const navigate = useNavigate();
+
     const [founders, setFounders] = useState([]);
     const [clients, setClients] = useState([]);
     const [invoices, setInvoices] = useState([]);
@@ -32,6 +35,8 @@ export default function Internals() {
         paidOn: new Date().toISOString().slice(0, 10),
         notes: "",
     });
+
+    const [expandedFounderId, setExpandedFounderId] = useState(null);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -68,9 +73,50 @@ export default function Internals() {
         fetchAll();
     }, []);
 
+    const companyTotals = useMemo(() => {
+        const generated = clients.reduce((s, c) => s + Number(c.payment || 0), 0);
+        const collected = clients.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
+        const pending = Math.max(0, generated - collected);
+        return { generated, collected, pending };
+    }, [clients]);
+
     // Monthly revenue is based on each client's recurring payment record,
     // not on invoice rows. Monthly retainer clients are re-added manually.
+    // NOTE: earnedCut is calculated live from current founder_id assignment.
+    // Reassigning a client's founder retroactively shifts past collected revenue
+    // to the new founder. This is intentional per client — not a bug.
     const stats = useMemo(() => {
+        const gajendra = founders.find(
+            (f) => String(f.name || "").trim().toLowerCase() === "gajendra"
+        );
+
+        // First pass: figure out each founder's own commission cut,
+        // and how much "leftover" flows to Gajendra from non-Gajendra clients
+        const ownCutByFounder = {};
+        let gajendraRemainder = 0;
+
+        clients.forEach((c) => {
+            const collected = Number(c.paid_amount || 0);
+            if (!c.founder_id || collected <= 0) return;
+
+            const founder = founders.find((f) => f.id === c.founder_id);
+            if (!founder) return;
+
+            const isThisGajendra = gajendra && founder.id === gajendra.id;
+
+            if (isThisGajendra) {
+                // Gajendra's own clients — he keeps 100%
+                ownCutByFounder[founder.id] = (ownCutByFounder[founder.id] || 0) + collected;
+            } else {
+                const pct = Number(founder.commission || 0);
+                const theirShare = Math.round((collected * pct) / 100);
+                const remainder = collected - theirShare;
+
+                ownCutByFounder[founder.id] = (ownCutByFounder[founder.id] || 0) + theirShare;
+                gajendraRemainder += remainder;
+            }
+        });
+
         return founders.map((f) => {
             const theirClients = clients.filter((c) => c.founder_id === f.id);
 
@@ -78,10 +124,9 @@ export default function Internals() {
             const collected = theirClients.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
             const pending = Math.max(0, generated - collected);
 
-            const isGajendra = String(f.name || "").trim().toLowerCase() === "gajendra";
-            const earnedCut = isGajendra
-                ? collected
-                : Math.round((collected * Number(f.commission || 0)) / 100);
+            const isThisGajendra = gajendra && f.id === gajendra.id;
+            const earnedCut = (ownCutByFounder[f.id] || 0) + (isThisGajendra ? gajendraRemainder : 0);
+
             const paidOut = payouts
                 .filter((p) => p.founder_id === f.id)
                 .reduce((s, p) => s + Number(p.amount || 0), 0);
@@ -90,6 +135,7 @@ export default function Internals() {
             return {
                 ...f,
                 clientCount: theirClients.length,
+                theirClients,
                 generated,
                 collected,
                 pending,
@@ -213,6 +259,27 @@ export default function Internals() {
                         )}
                     </div>
 
+                    <div className="rounded-none bg-white p-6 shadow-[0px_0_10px_-3px_rgba(0,0,0,0.3)] border border-gray-200 mb-6">
+                        <div className="flex items-center gap-2 text-xs font-semibold tracking-[3px] text-black uppercase mb-4">
+                            <IndianRupee size={14} />
+                            Company Revenue
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Total Generated</p>
+                                <p className="text-lg font-bold text-slate-900">{currency(companyTotals.generated)}</p>
+                            </div>
+                            <div>
+                                <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Total Collected</p>
+                                <p className="text-lg font-bold text-emerald-600">{currency(companyTotals.collected)}</p>
+                            </div>
+                            <div>
+                                <p className="text-[0.65rem] uppercase tracking-wide text-gray-400 mb-1">Pending</p>
+                                <p className="text-lg font-bold text-amber-500">{currency(companyTotals.pending)}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {tableMissing ? (
                         <div className="rounded-none bg-white border border-gray-200 shadow-sm px-6 py-10 text-center">
                             <p className="text-sm font-semibold text-slate-700">The founders table isn't set up yet.</p>
@@ -246,9 +313,12 @@ export default function Internals() {
                                                 ) : (
                                                     <div>
                                                         <p className="font-bold text-slate-900">{f.name}</p>
-                                                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                        <button
+                                                            onClick={() => setExpandedFounderId(expandedFounderId === f.id ? null : f.id)}
+                                                            className="text-xs text-gray-400 flex items-center gap-1 mt-0.5 hover:text-slate-700 transition hover:underline cursor-pointer"
+                                                        >
                                                             <Users size={11} /> {f.clientCount} client{f.clientCount === 1 ? "" : "s"} brought in
-                                                        </p>
+                                                        </button>
                                                     </div>
                                                 )}
 
@@ -299,6 +369,25 @@ export default function Internals() {
                                                     <p className="text-sm font-bold text-emerald-600">{currency(f.cutPaid)}</p>
                                                 </div>
                                             </div>
+
+                                            {expandedFounderId === f.id && (
+                                                <div className="mb-4 rounded-none border border-gray-100 divide-y divide-gray-50">
+                                                    {f.theirClients.length === 0 ? (
+                                                        <p className="text-xs text-slate-400 text-center py-4">No clients yet.</p>
+                                                    ) : (
+                                                        f.theirClients.map((c) => (
+                                                            <button
+                                                                key={c.id}
+                                                                onClick={() => navigate(`/clients/${c.id}`)}
+                                                                className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-slate-50 transition cursor-pointer"
+                                                            >
+                                                                <span className="text-sm font-medium text-slate-700 truncate">{c.name}</span>
+                                                                <span className="text-xs text-slate-400 shrink-0 ml-2">{currency(c.paid_amount)} / {currency(c.payment)}</span>
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {!payoutsTableMissing && (
                                                 <button

@@ -67,10 +67,7 @@ const buildDashboard = (clients, founders, payouts, tasks, invoices) => {
     const founderStats = founders.map((founder) => {
         const theirClients = clients.filter((c) => c.founder_id === founder.id);
         const collected = theirClients.reduce((sum, c) => sum + Number(c.paid_amount || 0), 0);
-        const isGajendra = String(founder.name || "").trim().toLowerCase() === "gajendra";
-        const earnedCut = isGajendra
-            ? collected
-            : Math.round((collected * Number(founder.commission || 0)) / 100);
+        const earnedCut = Math.round((collected * Number(founder.commission || 0)) / 100);
         const paidOut = payouts
             .filter((p) => p.founder_id === founder.id)
             .reduce((sum, p) => sum + Number(p.amount || 0), 0);

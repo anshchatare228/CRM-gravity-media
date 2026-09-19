@@ -47,6 +47,8 @@ const buildInvoiceForm = () => ({
     paidOn: "",
 });
 
+const emptyBulkRow = () => ({ name: "", quantity: "" });
+
 export default function ClientDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
@@ -68,6 +70,10 @@ export default function ClientDetail() {
     const [invoiceForm, setInvoiceForm] = useState(buildInvoiceForm());
     const [pendingDelete, setPendingDelete] = useState(null);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+    // ---------- Bulk work-item generator ----------
+    const [bulkRows, setBulkRows] = useState([emptyBulkRow()]);
+    const [generatingBulk, setGeneratingBulk] = useState(false);
 
     const loadAll = async () => {
         setLoading(true);
@@ -157,6 +163,44 @@ export default function ClientDetail() {
         const next = tasks.filter((t) => t.id !== task.id);
         setTasks(next);
         syncCompletion(next);
+    };
+
+    // ---------- Bulk work-item generator ----------
+    const updateBulkRow = (index, field, value) => {
+        setBulkRows((rows) => rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+    };
+
+    const addBulkRow = () => setBulkRows((rows) => [...rows, emptyBulkRow()]);
+
+    const removeBulkRow = (index) => {
+        setBulkRows((rows) => (rows.length > 1 ? rows.filter((_, i) => i !== index) : rows));
+    };
+
+    const generateBulkTasks = async () => {
+        const rowsToInsert = [];
+        bulkRows.forEach((row) => {
+            const name = row.name.trim();
+            const qty = Number(row.quantity || 0);
+            if (!name || qty <= 0) return;
+            for (let i = 1; i <= qty; i++) {
+                rowsToInsert.push({ client_id: client.id, title: `${name} ${i}` });
+            }
+        });
+
+        if (rowsToInsert.length === 0) return;
+
+        setGeneratingBulk(true);
+        const { data, error } = await supabase.from("client_tasks").insert(rowsToInsert).select();
+        setGeneratingBulk(false);
+        if (error) {
+            console.error("Failed to generate tasks:", error);
+            return;
+        }
+
+        const next = [...tasks, ...(data || [])];
+        setTasks(next);
+        syncCompletion(next);
+        setBulkRows([emptyBulkRow()]);
     };
 
     const addMilestone = async () => {
@@ -520,6 +564,56 @@ export default function ClientDetail() {
                                         When every item below is checked off, this client is automatically marked completed.
                                     </p>
                                 )}
+
+                                {/* ---------- Bulk work-item generator ---------- */}
+                                <div className="rounded-none border border-gray-100 p-3.5 space-y-3 mb-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Bulk Generate Work Items</p>
+
+                                    {bulkRows.map((row, index) => (
+                                        <div key={index} className="grid grid-cols-[1fr_100px_28px] gap-2 items-center">
+                                            <input
+                                                value={row.name}
+                                                onChange={(e) => updateBulkRow(index, "name", e.target.value)}
+                                                placeholder="e.g. Reel, Post, Carousel"
+                                                className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            />
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={row.quantity}
+                                                onChange={(e) => updateBulkRow(index, "quantity", e.target.value)}
+                                                placeholder="Qty"
+                                                className="rounded-none border border-gray-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+                                            />
+                                            <button
+                                                onClick={() => removeBulkRow(index)}
+                                                disabled={bulkRows.length === 1}
+                                                className="text-slate-300 hover:text-rose-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                aria-label="Remove row"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    <div className="flex items-center justify-between pt-1">
+                                        <button
+                                            onClick={addBulkRow}
+                                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                                        >
+                                            <Plus size={13} /> Add row
+                                        </button>
+
+                                        <button
+                                            onClick={generateBulkTasks}
+                                            disabled={generatingBulk}
+                                            className="rounded-full bg-slate-900 text-white text-xs font-semibold px-4 py-2 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                        >
+                                            {generatingBulk ? "Generating..." : "Generate"}
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {tasks.length === 0 && (
                                     <p className="text-sm text-slate-400 text-center py-6">No work items yet — add the first one below.</p>
                                 )}
