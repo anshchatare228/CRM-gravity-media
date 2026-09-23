@@ -2,6 +2,7 @@ import React from "react";
 import { Download, X } from "lucide-react";
 import { jsPDF } from "jspdf";
 import brandLogo from "../assets/logo.png";
+import signatureImage from "../assets/signature.png";
 
 const BUSINESS = {
     name: "Gravity Media",
@@ -113,6 +114,15 @@ export async function downloadInvoicePdf(client, invoice) {
         pdf.addImage(logoData, "PNG", pageWidth - 52, 20, 32, 20);
     } catch (e) {
         // logo failed to load — continue without it
+    }
+
+    // Preload the signature image so it's ready by the time we draw the
+    // signature block further down the page.
+    let signatureData = null;
+    try {
+        signatureData = await loadImageAsDataUrl(signatureImage);
+    } catch (e) {
+        // signature failed to load — fall back to an empty box
     }
 
     pdf.setTextColor(30, 90, 150);
@@ -267,13 +277,19 @@ export async function downloadInvoicePdf(client, invoice) {
     pdf.setFont(undefined, "normal");
     pdf.text(BUSINESS.upiId, 20, by + 6);
 
-    // signature: boxed space reserved for a signature image, printed name below
+    // signature: draw the actual signature image if it loaded, otherwise
+    // fall back to a boxed placeholder
     const sigW = 50;
+    const sigH = 20;
     const sigX = pageWidth - 20 - sigW;
     let sigY = rowY + 6;
-    pdf.setDrawColor(210, 210, 210);
-    pdf.rect(sigX, sigY, sigW, 20);
-    sigY += 26;
+    if (signatureData) {
+        pdf.addImage(signatureData, "PNG", sigX, sigY, sigW, sigH);
+    } else {
+        pdf.setDrawColor(210, 210, 210);
+        pdf.rect(sigX, sigY, sigW, sigH);
+    }
+    sigY += sigH + 6;
     pdf.setFontSize(8.5);
     pdf.setTextColor(130, 130, 130);
     pdf.text("Authorized Signatory", sigX + sigW / 2, sigY, { align: "center" });
@@ -385,9 +401,7 @@ export default function InvoicePreview({ client, invoice, onClose }) {
                             <p>{BUSINESS.upiId}</p>
                         </div>
                         <div className="text-center shrink-0">
-                            <div className="h-14 w-32 border border-dashed border-gray-300 flex items-center justify-center text-[10px] text-slate-300">
-                                Signature
-                            </div>
+                            <img src={signatureImage} alt="Signature" className="h-14 w-32 object-contain mx-auto" />
                             <p className="text-[10px] text-slate-400 mt-1">Authorized Signatory</p>
                             <p className="text-[12px] font-bold text-slate-900">{BUSINESS.signatoryName}</p>
                         </div>
