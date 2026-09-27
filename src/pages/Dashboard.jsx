@@ -63,11 +63,51 @@ const buildDashboard = (clients, founders, payouts, tasks, invoices) => {
     // "paid" = actual payouts logged in founder_payouts
     // "pending" = commission earned on collected revenue, minus what's
     //             already been paid out
+    //
+    // Rule: Gajendra keeps 100% of his own clients' collected revenue.
+    // Every other founder keeps their own commission % on their clients,
+    // and whatever they DON'T keep (the remainder) flows into a shared
+    // pool that goes entirely to Gajendra. This pool grows with every
+    // additional non-Gajendra founder — that's intentional per client,
+    // not a bug. This mirrors the exact logic used on the Internals page
+    // so both pages always agree, no matter how many founders exist.
     // --------------------------------------------------------------
+    const gajendra = founders.find(
+        (f) => String(f.name || "").trim().toLowerCase() === "gajendra"
+    );
+
+    const ownCutByFounder = {};
+    let gajendraRemainder = 0;
+
+    clients.forEach((c) => {
+        const collected = Number(c.paid_amount || 0);
+        if (!c.founder_id || collected <= 0) return;
+
+        const founder = founders.find((f) => f.id === c.founder_id);
+        if (!founder) return;
+
+        const isThisGajendra = gajendra && founder.id === gajendra.id;
+
+        if (isThisGajendra) {
+            // Gajendra's own clients — he keeps 100%
+            ownCutByFounder[founder.id] = (ownCutByFounder[founder.id] || 0) + collected;
+        } else {
+            const pct = Number(founder.commission || 0);
+            const theirShare = Math.round((collected * pct) / 100);
+            const remainder = collected - theirShare;
+
+            ownCutByFounder[founder.id] = (ownCutByFounder[founder.id] || 0) + theirShare;
+            gajendraRemainder += remainder;
+        }
+    });
+
     const founderStats = founders.map((founder) => {
         const theirClients = clients.filter((c) => c.founder_id === founder.id);
         const collected = theirClients.reduce((sum, c) => sum + Number(c.paid_amount || 0), 0);
-        const earnedCut = Math.round((collected * Number(founder.commission || 0)) / 100);
+
+        const isThisGajendra = gajendra && founder.id === gajendra.id;
+        const earnedCut = (ownCutByFounder[founder.id] || 0) + (isThisGajendra ? gajendraRemainder : 0);
+
         const paidOut = payouts
             .filter((p) => p.founder_id === founder.id)
             .reduce((sum, p) => sum + Number(p.amount || 0), 0);

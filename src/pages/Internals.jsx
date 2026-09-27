@@ -29,6 +29,8 @@ export default function Internals() {
 
     const [payoutModalOpen, setPayoutModalOpen] = useState(false);
     const [deletePayoutId, setDeletePayoutId] = useState(null);
+    const [deleteFounderId, setDeleteFounderId] = useState(null);
+    const [founderDeleteError, setFounderDeleteError] = useState("");
     const [payoutForm, setPayoutForm] = useState({
         founderId: "",
         amount: "",
@@ -73,6 +75,12 @@ export default function Internals() {
         fetchAll();
     }, []);
 
+    const founderMap = useMemo(() => {
+        const map = {};
+        founders.forEach((f) => (map[f.id] = f.name));
+        return map;
+    }, [founders]);
+
     const companyTotals = useMemo(() => {
         const generated = clients.reduce((s, c) => s + Number(c.payment || 0), 0);
         const collected = clients.reduce((s, c) => s + Number(c.paid_amount || 0), 0);
@@ -90,8 +98,6 @@ export default function Internals() {
             (f) => String(f.name || "").trim().toLowerCase() === "gajendra"
         );
 
-        // First pass: figure out each founder's own commission cut,
-        // and how much "leftover" flows to Gajendra from non-Gajendra clients
         const ownCutByFounder = {};
         let gajendraRemainder = 0;
 
@@ -105,7 +111,6 @@ export default function Internals() {
             const isThisGajendra = gajendra && founder.id === gajendra.id;
 
             if (isThisGajendra) {
-                // Gajendra's own clients — he keeps 100%
                 ownCutByFounder[founder.id] = (ownCutByFounder[founder.id] || 0) + collected;
             } else {
                 const pct = Number(founder.commission || 0);
@@ -145,12 +150,6 @@ export default function Internals() {
             };
         });
     }, [founders, clients, payouts, invoices]);
-
-    const founderMap = useMemo(() => {
-        const map = {};
-        founders.forEach((f) => (map[f.id] = f.name));
-        return map;
-    }, [founders]);
 
     const unassignedCount = useMemo(
         () => clients.filter((c) => !c.founder_id).length,
@@ -193,6 +192,22 @@ export default function Internals() {
         setFounders((prev) => [...prev, data]);
         setAddForm({ name: "", commission: "" });
         setAddOpen(false);
+    };
+
+    // ---------- Delete founder ----------
+    const deleteFounder = async (id) => {
+        setFounderDeleteError("");
+        const { error } = await supabase.from("founders").delete().eq("id", id);
+        if (error) {
+            setFounderDeleteError(
+                error.message?.includes("foreign key")
+                    ? "Can't delete — this founder still has clients or payouts linked to them. Reassign those first."
+                    : error.message || "Failed to delete founder."
+            );
+            return;
+        }
+        setFounders((prev) => prev.filter((f) => f.id !== id));
+        if (expandedFounderId === id) setExpandedFounderId(null);
     };
 
     // ---------- Payouts ----------
@@ -339,12 +354,24 @@ export default function Internals() {
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <button
-                                                        onClick={() => startEdit(f)}
-                                                        className="flex items-center gap-1.5 rounded-full bg-amber-50 text-amber-600 text-xs font-semibold px-3 py-1.5 hover:bg-amber-100 transition"
-                                                    >
-                                                        {f.commission}% cut <Pencil size={11} />
-                                                    </button>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <button
+                                                            onClick={() => startEdit(f)}
+                                                            className="flex items-center gap-1.5 rounded-full bg-amber-50 text-amber-600 text-xs font-semibold px-3 py-1.5 hover:bg-amber-100 transition"
+                                                        >
+                                                            {f.commission}% cut <Pencil size={11} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setFounderDeleteError("");
+                                                                setDeleteFounderId(f.id);
+                                                            }}
+                                                            title="Delete founder"
+                                                            className="p-1.5 rounded-full text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
 
@@ -589,6 +616,7 @@ export default function Internals() {
                     </div>
                 </div>
             )}
+
             <ConfirmModal
                 open={Boolean(deletePayoutId)}
                 title="Delete payout?"
@@ -599,6 +627,26 @@ export default function Internals() {
                     await deletePayout(payoutId);
                 }}
                 onCancel={() => setDeletePayoutId(null)}
+            />
+
+            <ConfirmModal
+                open={Boolean(deleteFounderId)}
+                title="Delete founder?"
+                message={
+                    founderDeleteError
+                        ? founderDeleteError
+                        : `Delete ${founderMap[deleteFounderId] || "this founder"}? This will permanently remove them and cannot be undone. Their clients will need to be reassigned.`
+                }
+                onConfirm={async () => {
+                    const id = deleteFounderId;
+                    await deleteFounder(id);
+                    // keep modal open on error so the person sees why it failed
+                    setDeleteFounderId((prev) => (founderDeleteError ? prev : null));
+                }}
+                onCancel={() => {
+                    setDeleteFounderId(null);
+                    setFounderDeleteError("");
+                }}
             />
         </div>
     );
